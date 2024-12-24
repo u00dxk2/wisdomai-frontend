@@ -32,7 +32,7 @@ function App() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/chat", {
+      const response = await fetch("https://chatddk-backend.vercel.app/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message }),
@@ -61,7 +61,7 @@ function App() {
 
   const handleClearChat = async () => {
     try {
-      const response = await fetch("http://localhost:5000/reset", {
+      const response = await fetch("https://chatddk-backend.vercel.app/", {
         method: "POST",
       });
 
