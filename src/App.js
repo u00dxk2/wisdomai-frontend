@@ -77,61 +77,129 @@ function App() {
   };
 
   return (
-    <Box sx={{ padding: "16px", fontFamily: "Arial, sans-serif" }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+        backgroundColor: "#fafafa", // Light background
+        alignItems: "center",
+        py: 4,
+        px: 2,
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
+      {/* Title */}
       <Typography variant="h3" gutterBottom>
         ChatDDK
       </Typography>
-
-      {/* Chat Container with Ref */}
+  
+      {/* Main Chat Container */}
       <Paper
         elevation={3}
-        className="chat-container"
-        ref={chatContainerRef} // Attach ref here
+        sx={{
+          width: "90%",
+          maxWidth: "800px", // limit the width on large screens
+          p: 2,
+          flex: "1 0 auto",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+        }}
       >
-        {chatHistory.map((entry, index) => (
-          <Box
-            key={index}
-            className={
-              entry.role === "user" ? "user-message" : "assistant-message"
-            }
+        {/* Messages Area */}
+        <Box
+          ref={chatContainerRef}
+          sx={{
+            flex: "1 1 auto",
+            overflowY: "auto",
+            mb: 2,
+            p: 2,
+            backgroundColor: "#fff",
+            borderRadius: 2,
+          }}
+        >
+          {chatHistory.map((entry, index) => (
+            <Box
+              key={index}
+              sx={{
+                backgroundColor: entry.role === "user" ? "#cce4ff" : "#ececec",
+                color: "#333",
+                p: 2,
+                m: 1,
+                borderRadius: 2,
+                maxWidth: "75%",
+                alignSelf: entry.role === "user" ? "flex-end" : "flex-start",
+              }}
+            >
+              <ReactMarkdown>{entry.content}</ReactMarkdown>
+            </Box>
+          ))}
+  
+          {isLoading && (
+            <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
+              <CircularProgress size={24} />
+              <Typography variant="body2" sx={{ ml: 1 }}>
+                Thinking...
+              </Typography>
+            </Box>
+          )}
+        </Box>
+  
+        {/* Input Area */}
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <TextField
+            fullWidth
+            variant="outlined"
+            placeholder="Type your message..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+          />
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSendMessage}
+            sx={{ ml: 2 }}
           >
-            <ReactMarkdown>{entry.content}</ReactMarkdown>
-          </Box>
-        ))}
-        {isLoading && (
-          <div className="loading-indicator">
-            <CircularProgress size={24} />
-            <Typography variant="body2">Thinking...</Typography>
-          </div>
-        )}
+            Send
+          </Button>
+          <Button
+            variant="outlined"
+            color="secondary"
+            onClick={handleClearChat}
+            sx={{ ml: 1 }}
+          >
+            Clear Chat
+          </Button>
+        </Box>
       </Paper>
-
-      {/* Input Area */}
-      <Box sx={{ display: "flex", marginTop: "10px" }}>
-        <TextField
-          fullWidth
-          variant="outlined"
-          placeholder="Type your message..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-        />
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleSendMessage}
-          sx={{ ml: 2, padding: "10px 20px" }}
-        >
-          Send
-        </Button>
-        <Button
-          variant="outlined"
-          color="secondary"
-          onClick={handleClearChat}
-          sx={{ marginLeft: "10px" }}
-        >
-          Clear Chat
-        </Button>
+  
+      {/* Disclaimer / Footer Note */}
+      <Box
+        sx={{
+          width: "90%",
+          maxWidth: "800px",
+          mt: 2,
+          p: 2,
+          backgroundColor: "#f0f0f0",
+          borderRadius: 2,
+        }}
+      >
+        <Typography variant="body2">
+          ChatDDK is the virtual version of David Kooi, CEO and Co-Founder of Jointly.
+          <br />
+          Don&apos;t believe anything he says.
+          <br />
+          He is using OpenAI&apos;s ChatGPT 4o model.
+          <br />
+          Combined with over 100 documents the real David Kooi has written about Jointly and
+          Purposeful Cannabis Consumption since 2018.
+          <br />
+          He does not have any confidential information.
+          <br />
+          So if he gives you any, it was a hallucination.
+        </Typography>
       </Box>
     </Box>
   );
