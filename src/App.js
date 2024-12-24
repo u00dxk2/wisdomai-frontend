@@ -32,7 +32,7 @@ function App() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("https://chatddk-backend.vercel.app/chat", {
+      const response = await fetch("https://chatddk-backend.onrender.com/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message }),
@@ -61,7 +61,7 @@ function App() {
 
   const handleClearChat = async () => {
     try {
-      const response = await fetch("https://chatddk-backend.vercel.app/reset", {
+      const response = await fetch("https://chatddk-backend.onrender.com/reset", {
         method: "POST",
       });
 
