@@ -236,8 +236,7 @@ function App() {
               <br />
               He is made from OpenAI&apos;s ChatGPT 4o model
               <br />
-              And trained with over 100 documents the real David Kooi has written 
-              <br />
+              And trained with over 100 documents the real David Kooi has written          
               about Jointly, Jointly's software, and Purposeful Consumption since 2018.
               <br />
               <br />
@@ -249,13 +248,14 @@ function App() {
               <br />
               *How we made it
               <br />
-              *The problems we aim to solve
               <br />
-              **For cannabis consumers
+              And the problems we aim to solve
               <br />
-              **For cannabis retailers
+              *For cannabis consumers
               <br />
-              **For the industry
+              *For cannabis retailers
+              <br />
+              *For the industry
               <br />
               <br />
               ChatDDK does not have any confidential information.
