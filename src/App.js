@@ -189,16 +189,22 @@ function App() {
         <Typography variant="body2">
           ChatDDK is the virtual version of David Kooi, CEO and Co-Founder of Jointly.
           <br />
-          Don&apos;t believe anything he says.
+          He is made from:
+          *OpenAI&apos;s ChatGPT 4o model
+          *and trained with over 100 documents the real David Kooi has written 
+          *About Jointly and Purposeful Cannabis Consumption since 2018.
           <br />
-          He is using OpenAI&apos;s ChatGPT 4o model.
+          Ask about Jointly's software
+          *Why we made it
+          *Who we made it for
+          *How we made it
+          *The problems it solves
+          *What it does for cannabis consumers
+          *What it does for cannabis retailers
+          *What it does for the industry
           <br />
-          Combined with over 100 documents the real David Kooi has written about Jointly and
-          Purposeful Cannabis Consumption since 2018.
-          <br />
-          He does not have any confidential information.
-          <br />
-          So if he gives you any, it was a hallucination.
+          ChatDDK does not have any confidential information.
+          If he gives you any, it was a hallucination.
         </Typography>
       </Box>
     </Box>
