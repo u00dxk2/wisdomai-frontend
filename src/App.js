@@ -10,7 +10,7 @@ import {
   IconButton,
 } from "@mui/material";
 import ReactMarkdown from "react-markdown";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore"; 
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import "./index.css";
 
 function App() {
@@ -18,7 +18,7 @@ function App() {
   const [chatHistory, setChatHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // **New** state to control the info section
+  // Collapsible info section state
   const [infoOpen, setInfoOpen] = useState(false);
 
   // Ref for the chat container
@@ -32,11 +32,54 @@ function App() {
   }, [chatHistory]);
 
   const handleSendMessage = async () => {
-    // same as before...
+    if (!message.trim()) return;
+
+    setChatHistory((prev) => [...prev, { role: "user", content: message }]);
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("https://chatddk-backend.onrender.com/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+
+      const data = await response.json();
+
+      setChatHistory((prev) => [
+        ...prev,
+        { role: "assistant", content: data.reply },
+      ]);
+    } catch (error) {
+      console.error("Error communicating with backend:", error);
+      setChatHistory((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Error: Unable to fetch response from ChatDDK backend.",
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+      setMessage("");
+    }
   };
 
   const handleClearChat = async () => {
-    // same as before...
+    try {
+      const response = await fetch("https://chatddk-backend.onrender.com/reset", {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        setChatHistory([]);
+        console.log("Conversation reset successfully.");
+      } else {
+        console.error("Failed to reset conversation.");
+      }
+    } catch (error) {
+      console.error("Error resetting conversation:", error);
+    }
   };
 
   return (
@@ -45,7 +88,7 @@ function App() {
         display: "flex",
         flexDirection: "column",
         minHeight: "100vh",
-        backgroundColor: "#fafafa",
+        backgroundColor: "#fafafa", // Light background
         alignItems: "center",
         py: 4,
         px: 2,
@@ -62,7 +105,7 @@ function App() {
         elevation={3}
         sx={{
           width: "90%",
-          maxWidth: "800px", 
+          maxWidth: "800px", // limit the width on large screens
           p: 2,
           flex: "1 0 auto",
           display: "flex",
@@ -146,7 +189,7 @@ function App() {
           mt: 2,
         }}
       >
-        {/* Header row with "Information" button */}
+        {/* Header row with "Information" label */}
         <Box
           sx={{
             display: "flex",
@@ -163,9 +206,12 @@ function App() {
             Information
           </Typography>
 
-          {/* An icon to show expand or collapse */}
+          {/* Icon to show expand/collapse */}
           <IconButton
-            onClick={() => setInfoOpen(!infoOpen)}
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent double toggle if you click the icon
+              setInfoOpen(!infoOpen);
+            }}
             sx={{
               transform: infoOpen ? "rotate(180deg)" : "rotate(0deg)",
               transition: "transform 0.3s",
@@ -175,7 +221,6 @@ function App() {
           </IconButton>
         </Box>
 
-        {/* The actual disclaimer text goes inside a Collapse */}
         <Collapse in={infoOpen}>
           <Box
             sx={{
@@ -196,7 +241,7 @@ function App() {
               about Jointly, Jointly's software, and Purposeful Consumption since 2018.
               <br />
               <br />
-              ChatDDK knows about Jointly's software
+              ChatDDK knows about Jointly&apos;s software
               <br />
               *Why we made it
               <br />
