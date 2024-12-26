@@ -76,13 +76,54 @@ function App() {
     }
   };
 
+  import React, { useState, useEffect, useRef } from "react";
+import {
+  TextField,
+  Button,
+  Box,
+  Typography,
+  CircularProgress,
+  Paper,
+  Collapse,
+  IconButton,
+} from "@mui/material";
+import ReactMarkdown from "react-markdown";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"; 
+import "./index.css";
+
+function App() {
+  const [message, setMessage] = useState("");
+  const [chatHistory, setChatHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // **New** state to control the info section
+  const [infoOpen, setInfoOpen] = useState(false);
+
+  // Ref for the chat container
+  const chatContainerRef = useRef(null);
+
+  // Scroll to bottom when chatHistory updates
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [chatHistory]);
+
+  const handleSendMessage = async () => {
+    // same as before...
+  };
+
+  const handleClearChat = async () => {
+    // same as before...
+  };
+
   return (
     <Box
       sx={{
         display: "flex",
         flexDirection: "column",
         minHeight: "100vh",
-        backgroundColor: "#fafafa", // Light background
+        backgroundColor: "#fafafa",
         alignItems: "center",
         py: 4,
         px: 2,
@@ -93,13 +134,13 @@ function App() {
       <Typography variant="h3" gutterBottom>
         ChatDDK
       </Typography>
-  
+
       {/* Main Chat Container */}
       <Paper
         elevation={3}
         sx={{
           width: "90%",
-          maxWidth: "800px", // limit the width on large screens
+          maxWidth: "800px", 
           p: 2,
           flex: "1 0 auto",
           display: "flex",
@@ -135,7 +176,7 @@ function App() {
               <ReactMarkdown>{entry.content}</ReactMarkdown>
             </Box>
           ))}
-  
+
           {isLoading && (
             <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
               <CircularProgress size={24} />
@@ -145,7 +186,7 @@ function App() {
             </Box>
           )}
         </Box>
-  
+
         {/* Input Area */}
         <Box sx={{ display: "flex", alignItems: "center" }}>
           <TextField
@@ -174,51 +215,87 @@ function App() {
           </Button>
         </Box>
       </Paper>
-  
-      {/* Disclaimer / Footer Note */}
+
+      {/* Collapsible "Information" Section */}
       <Box
         sx={{
           width: "90%",
           maxWidth: "800px",
           mt: 2,
-          p: 2,
-          backgroundColor: "#f0f0f0",
-          borderRadius: 2,
         }}
       >
-        <Typography variant="body2">
-          ChatDDK is the virtual version of David Kooi, CEO and Co-Founder of Jointly.
-          <br />
-          <br />
-          He is made from:
-          <br />
-          *OpenAI&apos;s ChatGPT 4o model
-          <br />
-          *and trained with over 100 documents the real David Kooi has written 
-          <br />
-          *About Jointly and Purposeful Cannabis Consumption since 2018.
-          <br />
-          <br />
-          He knows about Jointly's software
-          <br />
-          *Why we made it
-          <br />
-          *Who we made it for
-          <br />
-          *How we made it
-          <br />
-          *The problems we aim to solve
-          <br />
-          **For cannabis consumers
-          <br />
-          **For cannabis retailers
-          <br />
-          **For the industry
-          <br />
-          <br />
-          ChatDDK does not have any confidential information.
-          If he gives you any, it was a hallucination.
-        </Typography>
+        {/* Header row with "Information" button */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            backgroundColor: "#f0f0f0",
+            p: 1,
+            borderRadius: 2,
+            cursor: "pointer",
+          }}
+          onClick={() => setInfoOpen(!infoOpen)}
+        >
+          <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+            Information
+          </Typography>
+
+          {/* An icon to show expand or collapse */}
+          <IconButton
+            onClick={() => setInfoOpen(!infoOpen)}
+            sx={{
+              transform: infoOpen ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.3s",
+            }}
+          >
+            <ExpandMoreIcon />
+          </IconButton>
+        </Box>
+
+        {/* The actual disclaimer text goes inside a Collapse */}
+        <Collapse in={infoOpen}>
+          <Box
+            sx={{
+              p: 2,
+              backgroundColor: "#f8f8f8",
+              borderRadius: 2,
+              mt: 1,
+            }}
+          >
+            <Typography variant="body2">
+              ChatDDK is the virtual version of David Kooi, CEO and Co-Founder of Jointly.
+              <br />
+              <br />
+              He is made from OpenAI&apos;s ChatGPT 4o model
+              <br />
+              And trained with over 100 documents the real David Kooi has written 
+              <br />
+              about Jointly, Jointly's software, and Purposeful Consumption since 2018.
+              <br />
+              <br />
+              ChatDDK knows about Jointly's software
+              <br />
+              *Why we made it
+              <br />
+              *Who we made it for
+              <br />
+              *How we made it
+              <br />
+              *The problems we aim to solve
+              <br />
+              **For cannabis consumers
+              <br />
+              **For cannabis retailers
+              <br />
+              **For the industry
+              <br />
+              <br />
+              ChatDDK does not have any confidential information.
+              If he gives you any, it was a hallucination.
+            </Typography>
+          </Box>
+        </Collapse>
       </Box>
     </Box>
   );
