@@ -90,17 +90,17 @@ function App() {
         display: "flex",
         flexDirection: "column",
         minHeight: "100vh",
-        backgroundColor: "#fdfaf6",
+        backgroundColor: "#fafafa",
         alignItems: "center",
         py: 4,
         px: 2,
-        fontFamily: "'Merriweather', serif",
+        fontFamily: "Arial, sans-serif",
       }}
     >
       <Typography variant="h3" gutterBottom>
         WisdomAI
       </Typography>
-
+  
       <Paper
         elevation={3}
         sx={{
@@ -122,7 +122,7 @@ function App() {
             p: 2,
             backgroundColor: "#fff",
             borderRadius: 2,
-            display: "flex",        
+            display: "flex",
             flexDirection: "column",
           }}
         >
@@ -146,26 +146,28 @@ function App() {
               <ReactMarkdown>{entry.content}</ReactMarkdown>
             </Box>
           ))}
-
+  
           {isLoading && (
             <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
               <CircularProgress size={24} />
               <Typography variant="body2" sx={{ ml: 1 }}>
-                Contemplating...
+                Thinking...
               </Typography>
             </Box>
           )}
         </Box>
-
+  
+        {/* Wisdom Selector */}
         <WisdomSelector figure={figure} setFigure={setFigure} />
-        <Box sx={{ display: "flex", alignItems: "center" }}>
+  
+        {/* Input and Buttons */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', mt: 1 }}>
           <TextField
-            fullWidth
             multiline
             minRows={1}
-            maxRows={5}
+            maxRows={4}
             variant="outlined"
-            placeholder="Enter your query..."
+            placeholder="Type your message..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {
@@ -173,92 +175,81 @@ function App() {
                 e.preventDefault();
                 handleSendMessage();
               }
-          }}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-            borderRadius: '20px',  // Maintains your rounded style
-    },
-  }}
-/>
-
-          <Button variant="contained" color="primary" onClick={handleSendMessage} sx={{ ml: 2 }}>
-            Send
-          </Button>
-          <Button variant="outlined" color="secondary" onClick={handleClearChat} sx={{ ml: 1 }}>
-            Clear Chat
-          </Button>
+            }}
+          />
+  
+          {/* Buttons below text input */}
+          <Box sx={{ display: 'flex', gap: 1, mt: 1, justifyContent: 'flex-end' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSendMessage}
+              sx={{ px: 2, py: 1 }}
+            >
+              Send
+            </Button>
+  
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={handleClearChat}
+              sx={{ px: 2, py: 1 }}
+            >
+              Clear Chat
+            </Button>
+          </Box>
         </Box>
       </Paper>
-
+  
       {/* About WisdomAI Section */}
-      {/* About WisdomAI Section */}
-<Box
-  sx={{
-    width: "90%",
-    maxWidth: "800px",
-    mt: 2,
-  }}
->
-  <Box
-    sx={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      backgroundColor: "#e0e6ef",
-      p: 1.5,
-      borderRadius: 2,
-      cursor: "pointer",
-    }}
-    onClick={() => setInfoOpen(!infoOpen)}
-  >
-    <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#4a6fa5" }}>
-      About WisdomAI
-    </Typography>
-
-    <IconButton
-      onClick={(e) => {
-        e.stopPropagation();
-        setInfoOpen(!infoOpen);
-      }}
-      sx={{
-        transform: infoOpen ? "rotate(180deg)" : "rotate(0deg)",
-        transition: "transform 0.3s",
-      }}
-    >
-      <ExpandMoreIcon />
-    </IconButton>
-  </Box>
-
-  <Collapse in={infoOpen}>
-    <Box
-      sx={{
-        p: 2,
-        backgroundColor: "#f7f9fc",
-        borderRadius: 2,
-        mt: 1,
-      }}
-    >
-      <Typography variant="body2">
-        <strong>WisdomAI</strong> is your philosophical companion designed to bring timeless wisdom into your daily life.
-        <br />
-        <br />
-        Select a wisdom figure—like Buddha, Epictetus, Jesus, Laozi, Kurt Vonnegut, Carl Sagan, Mark Twain, David Kooi (lol), or Rumi—and explore thoughtful responses to your questions.
-        <br />
-        <br />
-        WisdomAI uses the OpenAI GPT-4o model enhanced by carefully curated texts reflecting each wisdom figure’s authentic teachings.
-        <br />
-        <br />
-        Use WisdomAI to gain clarity, inspire reflection, and explore life's deeper truths from diverse philosophical perspectives.
-        <br />
-        <br />
-        <em>Note: WisdomAI is powered by artificial intelligence and intended to offer reflective guidance, not definitive advice.</em>
-      </Typography>
-    </Box>
-  </Collapse>
-</Box>
-
+      <Box sx={{ width: "90%", maxWidth: "800px", mt: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            backgroundColor: "#e0e6ef",
+            p: 1.5,
+            borderRadius: 2,
+            cursor: "pointer",
+          }}
+          onClick={() => setInfoOpen(!infoOpen)}
+        >
+          <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#4a6fa5" }}>
+            About WisdomAI
+          </Typography>
+  
+          <IconButton
+            onClick={(e) => {
+              e.stopPropagation();
+              setInfoOpen(!infoOpen);
+            }}
+            sx={{
+              transform: infoOpen ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.3s",
+            }}
+          >
+            <ExpandMoreIcon />
+          </IconButton>
+        </Box>
+  
+        <Collapse in={infoOpen}>
+          <Box sx={{ p: 2, backgroundColor: "#f7f9fc", borderRadius: 2, mt: 1 }}>
+            <Typography variant="body2">
+              <strong>WisdomAI</strong> is your philosophical companion designed to bring timeless wisdom into your daily life.
+              <br /><br />
+              Select a wisdom figure—like Buddha, Epictetus, Jesus, Laozi, Kurt Vonnegut, Carl Sagan, David Kooi (lol),Mark Twain, or Rumi—and explore thoughtful responses to your questions.
+              <br /><br />
+              WisdomAI uses the OpenAI GPT-4o model enhanced by carefully curated texts reflecting each wisdom figure’s authentic teachings.
+              <br /><br />
+              Use WisdomAI to gain clarity, inspire reflection, and explore life's deeper truths from diverse philosophical perspectives.
+              <br /><br />
+              <em>Note: WisdomAI is powered by artificial intelligence and intended to offer reflective guidance, not definitive advice.</em>
+            </Typography>
+          </Box>
+        </Collapse>
+      </Box>
     </Box>
   );
 }
-
-export default App;
+  export default App;
