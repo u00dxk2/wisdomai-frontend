@@ -128,20 +128,23 @@ function App() {
           }}
         >
           {chatHistory.map((entry, index) => (
-            <Box
-              key={index}
-              sx={{
-                backgroundColor: entry.role === "user" ? "#cce4ff" : "#ececec",
-                color: "#333",
-                p: 2,
-                m: 1,
-                borderRadius: 2,
-                maxWidth: "75%",
-                alignSelf: entry.role === "user" ? "flex-end" : "flex-start",
-              }}
-            >
-              <ReactMarkdown>{entry.content}</ReactMarkdown>
-            </Box>
+  <Box
+    key={index}
+    sx={{
+      backgroundColor: entry.role === "user" ? "#ddeeff" : "#f1f1f1",
+      color: "#333",
+      p: 2,
+      m: 1,
+      borderRadius: 2,
+      maxWidth: "75%",
+      alignSelf: entry.role === "user" ? "flex-end" : "flex-start",
+    }}
+  >
+    <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
+      {entry.role === "user" ? "You" : figure}
+    </Typography>
+    <ReactMarkdown>{entry.content}</ReactMarkdown>
+  </Box>
           ))}
 
           {isLoading && (
