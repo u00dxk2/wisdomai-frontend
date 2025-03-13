@@ -122,6 +122,8 @@ function App() {
             p: 2,
             backgroundColor: "#fff",
             borderRadius: 2,
+            display: "flex",        
+            flexDirection: "column",
           }}
         >
           {chatHistory.map((entry, index) => (
@@ -135,6 +137,7 @@ function App() {
                 borderRadius: 2,
                 maxWidth: "75%",
                 alignSelf: entry.role === "user" ? "flex-end" : "flex-start",
+                textAlign: "left",
               }}
             >
               <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
@@ -148,7 +151,7 @@ function App() {
             <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
               <CircularProgress size={24} />
               <Typography variant="body2" sx={{ ml: 1 }}>
-                Thinking...
+                Contemplating...
               </Typography>
             </Box>
           )}
@@ -225,7 +228,7 @@ function App() {
         <strong>WisdomAI</strong> is your philosophical companion designed to bring timeless wisdom into your daily life.
         <br />
         <br />
-        Select a wisdom figure—like Buddha, Epictetus, Jesus, Laozi, Kurt Vonnegut, Carl Sagan, Mark Twain, David Kooi, or Rumi—and explore thoughtful responses to your questions.
+        Select a wisdom figure—like Buddha, Epictetus, Jesus, Laozi, Kurt Vonnegut, Carl Sagan, Mark Twain, David Kooi (lol), or Rumi—and explore thoughtful responses to your questions.
         <br />
         <br />
         WisdomAI uses the OpenAI GPT-4o model enhanced by carefully curated texts reflecting each wisdom figure’s authentic teachings.
