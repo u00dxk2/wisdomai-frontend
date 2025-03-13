@@ -99,7 +99,7 @@ function App() {
     >
       {/* Title */}
       <Typography variant="h3" gutterBottom>
-        ChatDDK
+        WisdomAI
       </Typography>
 
       {/* Main Chat Container */}
