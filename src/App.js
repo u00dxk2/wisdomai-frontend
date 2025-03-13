@@ -12,11 +12,13 @@ import {
 import ReactMarkdown from "react-markdown";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import "./index.css";
+import WisdomSelector from './WisdomSelector';
 
 function App() {
   const [message, setMessage] = useState("");
   const [chatHistory, setChatHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [figure, setFigure] = useState('Buddha'); // default selection
 
   // Collapsible info section state
   const [infoOpen, setInfoOpen] = useState(false);
@@ -38,10 +40,10 @@ function App() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("https://chatddk-backend.onrender.com/chat", {
+      const response = await fetch("https://wisdomai-backend.onrender.com/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, wisdomFigure: figure }),
       });
 
       const data = await response.json();
@@ -67,7 +69,7 @@ function App() {
 
   const handleClearChat = async () => {
     try {
-      const response = await fetch("https://chatddk-backend.onrender.com/reset", {
+      const response = await fetch("hhttps://wisdomai-backend.onrender.com/reset", {
         method: "POST",
       });
 
@@ -153,6 +155,7 @@ function App() {
         </Box>
 
         {/* Input Area */}
+        <WisdomSelector figure={figure} setFigure={setFigure} />
         <Box sx={{ display: "flex", alignItems: "center" }}>
           <TextField
             fullWidth
