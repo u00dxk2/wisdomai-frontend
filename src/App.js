@@ -58,7 +58,7 @@ function App() {
         ...prev,
         {
           role: "assistant",
-          content: "Error: Unable to fetch response from ChatDDK backend.",
+          content: "Error: Unable to fetch response from backend.",
         },
       ]);
     } finally {
@@ -69,7 +69,7 @@ function App() {
 
   const handleClearChat = async () => {
     try {
-      const response = await fetch("hhttps://wisdomai-backend.onrender.com/reset", {
+      const response = await fetch("https://wisdomai-backend.onrender.com/reset", {
         method: "POST",
       });
 
