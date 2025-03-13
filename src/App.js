@@ -161,12 +161,26 @@ function App() {
         <Box sx={{ display: "flex", alignItems: "center" }}>
           <TextField
             fullWidth
+            multiline
+            minRows={1}
+            maxRows={5}
             variant="outlined"
             placeholder="Type your message..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-          />
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+              }
+          }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+            borderRadius: '20px',  // Maintains your rounded style
+    },
+  }}
+/>
+
           <Button variant="contained" color="primary" onClick={handleSendMessage} sx={{ ml: 2 }}>
             Send
           </Button>
