@@ -32,40 +32,40 @@ function App() {
 
   const handleSendMessage = async () => {
     if (!message.trim()) return;
-
-    const currentFigure = figure;
-
+  
     setChatHistory((prev) => [...prev, { role: "user", content: message }]);
     setIsLoading(true);
-
-    try {
-      const response = await fetch("https://wisdomai-backend.onrender.com/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, wisdomFigure: currentFigure }),
-      });
-
-      const data = await response.json();
-
-      setChatHistory((prev) => [
-        ...prev,
-        { role: "assistant", content: data.reply, figure: currentFigure },
-      ]);
-    } catch (error) {
-      console.error("Error communicating with backend:", error);
-      setChatHistory((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Error: Unable to fetch response from backend.",
-          figure: currentFigure,
-        },
-      ]);
-    } finally {
+  
+    const currentFigure = figure;
+    const eventSource = new EventSource(`https://wisdomai-backend.onrender.com/chat-stream?message=${encodeURIComponent(message)}&wisdomFigure=${encodeURIComponent(currentFigure)}`);
+  
+    let assistantMessage = '';
+  
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+  
+      if (data.content) {
+        assistantMessage += data.content;
+        setChatHistory((prev) => {
+          const historyWithoutLastAssistantMessage = prev.filter(entry => entry.role !== "assistant" || entry !== prev[prev.length - 1]);
+          return [...historyWithoutLastAssistantMessage, { role: "assistant", content: assistantMessage, figure: currentFigure }];
+        });
+      }
+  
+      if (data.done) {
+        eventSource.close();
+        setIsLoading(false);
+      }
+    };
+  
+    eventSource.onerror = (error) => {
+      console.error("EventSource failed:", error);
       setIsLoading(false);
-      setMessage("");
-    }
-  };
+      eventSource.close();
+    };
+  
+    setMessage('');
+  };  
 
   const handleClearChat = async () => {
     try {
