@@ -6,8 +6,8 @@ export default function WisdomSelector({ figure, setFigure }) {
 
   return (
     <FormControl fullWidth sx={{ mb: 2 }}>
-      <InputLabel>Choose Wisdom Figure</InputLabel>
-      <Select value={figure} label="Choose Wisdom Figure" onChange={(e) => setFigure(e.target.value)}>
+      <InputLabel>With Whom Would You Like To Speak?</InputLabel>
+      <Select value={figure} label="With Whom Would You Like To Converse?" onChange={(e) => setFigure(e.target.value)}>
         {figures.map((name) => (
           <MenuItem key={name} value={name}>{name}</MenuItem>
         ))}
