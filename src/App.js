@@ -165,7 +165,7 @@ function App() {
             minRows={1}
             maxRows={5}
             variant="outlined"
-            placeholder="Type your message..."
+            placeholder="Enter your query..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {
