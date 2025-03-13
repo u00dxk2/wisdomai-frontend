@@ -1,66 +1,68 @@
+/* Load Merriweather font from Google */
+@import url('https://fonts.googleapis.com/css2?family=Merriweather&display=swap');
+
 html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
-  background-color: #f9f9f9; /* Light background */
-  font-family: Arial, sans-serif;
+  background-color: #fdfaf6; /* gentle cream background */
+  font-family: 'Merriweather', serif;
+  color: #333;
 }
 
 /* Container for the chat messages */
 .chat-container {
   height: 400px;
   overflow-y: auto;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 10px;
-  background: #fff;
+  border-radius: 12px;
+  padding: 15px;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  gap: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-/* User message bubble (blue, aligned to the right) */
+/* User message bubble (soft blue, aligned to the right) */
 .user-message {
   align-self: flex-end;
-  background-color: #007aff; /* iMessage blue */
-  color: white;
-  padding: 10px 15px;
-  border-radius: 18px;
-  border-bottom-right-radius: 4px; /* iPhone-style corner */
-  margin: 5px;
+  background-color: #ddeeff;
+  color: #333;
+  padding: 12px 18px;
+  border-radius: 16px;
+  border-bottom-right-radius: 4px;
   max-width: 60%;
   word-wrap: break-word;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
-/* Assistant message bubble (grey, aligned to the left) */
+/* Assistant message bubble (soft grey, aligned to the left) */
 .assistant-message {
   align-self: flex-start;
-  background-color: #e5e5ea; /* iMessage grey */
-  color: black;
-  padding: 10px 15px;
-  border-radius: 18px;
-  border-bottom-left-radius: 4px; /* iPhone-style corner */
-  margin: 5px;
+  background-color: #f1f1f1;
+  color: #333;
+  padding: 12px 18px;
+  border-radius: 16px;
+  border-bottom-left-radius: 4px;
   max-width: 60%;
   word-wrap: break-word;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 /* Input area styling */
 .input-container {
   display: flex;
   gap: 10px;
-  margin-top: 10px;
+  margin-top: 15px;
 }
 
 input[type="text"] {
   flex: 1;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid #ccc;
   border-radius: 20px;
   outline: none;
+  font-family: 'Merriweather', serif;
 }
 
 button {
@@ -69,12 +71,27 @@ button {
   border-radius: 20px;
   color: white;
   cursor: pointer;
+  font-family: 'Merriweather', serif;
 }
 
 button.send-button {
-  background-color: #007aff;
+  background-color: #4a6fa5; /* deep calming indigo */
 }
 
 button.clear-button {
-  background-color: #ff3b30;
+  background-color: #a54a4a; /* gentle calming red */
+}
+
+/* Optional: Adjust scrollbar style for better UX */
+.chat-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-container::-webkit-scrollbar-thumb {
+  background-color: #cccccc;
+  border-radius: 4px;
+}
+
+.chat-container::-webkit-scrollbar-track {
+  background-color: #f4f6f8;
 }
