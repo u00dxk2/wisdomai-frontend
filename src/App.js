@@ -174,10 +174,72 @@ function App() {
       </Paper>
 
       {/* About WisdomAI Section */}
-      <Box sx={{ width: "90%", maxWidth: "800px", mt: 2 }}>
-        {/* Updated Information Box clearly tailored to WisdomAI */}
-        { /* (Add your updated Information Box here from previous update clearly) */ }
-      </Box>
+      {/* About WisdomAI Section */}
+<Box
+  sx={{
+    width: "90%",
+    maxWidth: "800px",
+    mt: 2,
+  }}
+>
+  <Box
+    sx={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: "#e0e6ef",
+      p: 1.5,
+      borderRadius: 2,
+      cursor: "pointer",
+    }}
+    onClick={() => setInfoOpen(!infoOpen)}
+  >
+    <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#4a6fa5" }}>
+      About WisdomAI
+    </Typography>
+
+    <IconButton
+      onClick={(e) => {
+        e.stopPropagation();
+        setInfoOpen(!infoOpen);
+      }}
+      sx={{
+        transform: infoOpen ? "rotate(180deg)" : "rotate(0deg)",
+        transition: "transform 0.3s",
+      }}
+    >
+      <ExpandMoreIcon />
+    </IconButton>
+  </Box>
+
+  <Collapse in={infoOpen}>
+    <Box
+      sx={{
+        p: 2,
+        backgroundColor: "#f7f9fc",
+        borderRadius: 2,
+        mt: 1,
+      }}
+    >
+      <Typography variant="body2">
+        <strong>WisdomAI</strong> is your philosophical companion designed to bring timeless wisdom into your daily life.
+        <br />
+        <br />
+        Select a wisdom figure—like Buddha, Epictetus, Jesus, Laozi, Kurt Vonnegut, Carl Sagan, Mark Twain, David Kooi, or Rumi—and explore thoughtful responses to your questions.
+        <br />
+        <br />
+        WisdomAI uses the OpenAI GPT-4o model enhanced by carefully curated texts reflecting each wisdom figure’s authentic teachings.
+        <br />
+        <br />
+        Use WisdomAI to gain clarity, inspire reflection, and explore life's deeper truths from diverse philosophical perspectives.
+        <br />
+        <br />
+        <em>Note: WisdomAI is powered by artificial intelligence and intended to offer reflective guidance, not definitive advice.</em>
+      </Typography>
+    </Box>
+  </Collapse>
+</Box>
+
     </Box>
   );
 }
