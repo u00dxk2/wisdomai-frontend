@@ -151,7 +151,7 @@ function App() {
             <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
               <CircularProgress size={24} />
               <Typography variant="body2" sx={{ ml: 1 }}>
-                Thinking...
+                Contemplating...
               </Typography>
             </Box>
           )}
@@ -167,7 +167,7 @@ function App() {
             minRows={1}
             maxRows={4}
             variant="outlined"
-            placeholder="Type your message..."
+            placeholder="Enter your query..."
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {
