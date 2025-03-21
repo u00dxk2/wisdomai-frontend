@@ -21,11 +21,11 @@ import { isAuthenticated, logout } from './utils/auth';
  * @component
  * @returns {JSX.Element} The rendered App component
  */
-function App() {
+const App = () => {
   // State
   const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated());
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'register'
-  const [figure, setFigure] = useState('Buddha');
+  const [selectedFigure, setFigure] = useState('Buddha');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [selectedChatId, setSelectedChatId] = useState(null);
 
@@ -76,55 +76,24 @@ function App() {
 
   // Render main chat interface
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-        backgroundColor: "#fafafa",
-        py: 4,
-        px: 2,
-      }}
-    >
-      <Container maxWidth="xl">
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Box 
-              sx={{ 
-                display: "flex", 
-                justifyContent: "space-between", 
-                alignItems: "center", 
-                mb: 4
-              }}
-            >
-              <Typography variant="h3">
-                WisdomAI
-              </Typography>
-              <Button variant="outlined" color="primary" onClick={handleLogout}>
-                Logout
-              </Button>
-            </Box>
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <ChatHistory 
-              refreshTrigger={refreshTrigger}
-              selectedChatId={selectedChatId}
-              onSelectChat={handleChatSelected}
-            />
-          </Grid>
-          <Grid item xs={12} md={9}>
-            <Chat 
-              selectedFigure={figure}
-              setFigure={setFigure}
-              onChatUpdated={handleChatUpdated}
-              selectedChatId={selectedChatId}
-              onSelectChat={handleChatSelected}
-            />
-          </Grid>
-        </Grid>
-      </Container>
+    <Box sx={{ display: 'flex', height: '100vh', bgcolor: 'background.default' }}>
+      <Box sx={{ width: 300, borderRight: 1, borderColor: 'divider', overflow: 'auto' }}>
+        <ChatHistory 
+          refreshTrigger={refreshTrigger} 
+          onSelectChat={handleChatSelected}
+          selectedChatId={selectedChatId}
+        />
+      </Box>
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Chat 
+          selectedFigure={selectedFigure} 
+          setFigure={setFigure}
+          onChatUpdated={handleChatUpdated}
+          selectedChatId={selectedChatId}
+        />
+      </Box>
     </Box>
   );
-}
+};
 
 export default App;
