@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import ReactDOM from "react-dom";
+import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
@@ -12,9 +12,11 @@ import "./index.css";
  * Renders the WisdomAI application into the DOM.
  * Uses React.StrictMode for additional development checks.
  */
-ReactDOM.render(
+const container = document.getElementById("root");
+const root = createRoot(container);
+
+root.render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>,
-  document.getElementById("root")
+  </React.StrictMode>
 );

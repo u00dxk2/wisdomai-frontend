@@ -4,18 +4,15 @@
  */
 
 import React, { useState } from "react";
-import {
-  Box,
-  Typography,
-  Button,
-  Container,
-  Grid,
-} from "@mui/material";
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider, createTheme } from '@mui/material';
+import { Box, CssBaseline, Typography, Button, Container, Grid } from "@mui/material";
 import "./index.css";
-import WisdomSelector from './WisdomSelector';
+import WisdomSelector from './components/WisdomSelector';
 import Login from './components/Login';
 import Register from './components/Register';
 import Chat from './components/Chat';
+import ChatHistory from './components/ChatHistory';
 import { isAuthenticated, logout } from './utils/auth';
 
 /**
@@ -29,6 +26,16 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated());
   const [authMode, setAuthMode] = useState('login'); // 'login' or 'register'
   const [figure, setFigure] = useState('Buddha');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [selectedChatId, setSelectedChatId] = useState(null);
+
+  const handleChatUpdated = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  const handleChatSelected = (chatId) => {
+    setSelectedChatId(chatId);
+  };
 
   /**
    * Handles user logout.
@@ -93,19 +100,26 @@ function App() {
               <Typography variant="h3">
                 WisdomAI
               </Typography>
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                <WisdomSelector
-                  selectedFigure={figure}
-                  onSelectFigure={setFigure}
-                />
-                <Button variant="outlined" color="primary" onClick={handleLogout}>
-                  Logout
-                </Button>
-              </Box>
+              <Button variant="outlined" color="primary" onClick={handleLogout}>
+                Logout
+              </Button>
             </Box>
           </Grid>
-          <Grid item xs={12}>
-            <Chat selectedFigure={figure} />
+          <Grid item xs={12} md={3}>
+            <ChatHistory 
+              refreshTrigger={refreshTrigger}
+              selectedChatId={selectedChatId}
+              onSelectChat={handleChatSelected}
+            />
+          </Grid>
+          <Grid item xs={12} md={9}>
+            <Chat 
+              selectedFigure={figure}
+              setFigure={setFigure}
+              onChatUpdated={handleChatUpdated}
+              selectedChatId={selectedChatId}
+              onSelectChat={handleChatSelected}
+            />
           </Grid>
         </Grid>
       </Container>
