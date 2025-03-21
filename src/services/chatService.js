@@ -4,6 +4,30 @@ import { getAuthToken } from '../utils/auth';
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
 /**
+ * Send a message to the wisdom figure
+ * @param {string} message - The message content
+ * @param {string} wisdomFigure - The selected wisdom figure
+ * @returns {Promise} Response from the wisdom figure
+ */
+export const sendMessage = async (message, wisdomFigure) => {
+  try {
+    const response = await axios.post(`${API_URL}/api/chat/stream`, {
+      message,
+      wisdomFigure
+    }, {
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error sending message:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/**
  * Save a message to chat history
  * @param {string} chatId - Optional chat ID for existing chat
  * @param {Object} message - Message object with role and content
@@ -50,8 +74,8 @@ export const getChatHistory = async () => {
 
 /**
  * Get messages for a specific chat
- * @param {string} chatId - Chat ID
- * @returns {Promise} Chat object with messages
+ * @param {string} chatId - The chat ID
+ * @returns {Promise} Array of messages
  */
 export const getChatMessages = async (chatId) => {
   try {
@@ -60,7 +84,7 @@ export const getChatMessages = async (chatId) => {
         Authorization: `Bearer ${getAuthToken()}`
       }
     });
-    return response.data;
+    return response.data.messages;
   } catch (error) {
     console.error('Error fetching chat messages:', error.response?.data || error.message);
     throw error;
@@ -69,8 +93,8 @@ export const getChatMessages = async (chatId) => {
 
 /**
  * Delete a chat
- * @param {string} chatId - Chat ID
- * @returns {Promise} Success message
+ * @param {string} chatId - The chat ID to delete
+ * @returns {Promise} Success response
  */
 export const deleteChat = async (chatId) => {
   try {
@@ -82,6 +106,24 @@ export const deleteChat = async (chatId) => {
     return response.data;
   } catch (error) {
     console.error('Error deleting chat:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+/**
+ * Clear the current chat messages
+ * @returns {Promise} Success response
+ */
+export const clearChat = async () => {
+  try {
+    const response = await axios.post(`${API_URL}/api/chat/clear`, {}, {
+      headers: {
+        Authorization: `Bearer ${getAuthToken()}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error clearing chat:', error.response?.data || error.message);
     throw error;
   }
 }; 
