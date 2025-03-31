@@ -70,6 +70,7 @@ const ChatHistory = ({ refreshTrigger, onSelectChat, selectedChatId, activeChatI
   }, []);
 
   // Load chat history when component mounts or refreshTrigger changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     console.log('ChatHistory refreshTrigger changed:', refreshTrigger);
     console.log('Current activeChatId:', activeChatId, 'selectedChatId:', selectedChatId);
@@ -78,7 +79,7 @@ const ChatHistory = ({ refreshTrigger, onSelectChat, selectedChatId, activeChatI
     // This makes sure we see new/updated chats immediately
     console.log('Refreshing chat history from trigger');
     loadChatHistory();
-  }, [refreshTrigger, loadChatHistory, activeChatId, selectedChatId]);
+  }, [refreshTrigger, loadChatHistory]);
 
   // When selected chat ID changes (usually from clicking "New Chat" or selecting a chat)
   useEffect(() => {
