@@ -35,6 +35,7 @@ const theme = createTheme({
 const App = () => {
   // State
   const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated());
+  // eslint-disable-next-line no-unused-vars
   const [authMode, setAuthMode] = useState('login');
   const [selectedFigure, setFigure] = useState('Buddha');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
