@@ -30,16 +30,18 @@ const WISDOM_FIGURES = [
  * @param {Object} props - Component props
  * @param {string} props.figure - Currently selected wisdom figure
  * @param {Function} props.setFigure - Function to update the selected wisdom figure
+ * @param {boolean} [props.disabled=false] - Whether the selector should be disabled
  * 
  * @example
  * <WisdomSelector 
  *   figure="Buddha"
  *   setFigure={(figure) => setSelectedFigure(figure)}
+ *   disabled={isTyping}
  * />
  */
-export default function WisdomSelector({ figure, setFigure }) {
+export default function WisdomSelector({ figure, setFigure, disabled = false }) {
   return (
-    <FormControl fullWidth sx={{ mb: 2 }}>
+    <FormControl fullWidth sx={{ mb: 2 }} disabled={disabled}>
       <InputLabel>With Whom Would You Like To Speak?</InputLabel>
       <Select 
         value={figure} 
