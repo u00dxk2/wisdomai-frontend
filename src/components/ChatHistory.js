@@ -69,20 +69,6 @@ const ChatHistory = ({ refreshTrigger, onSelectChat, selectedChatId, activeChatI
     }
   }, []);
 
-  // Debounced load function to prevent rapid refreshes
-  const debouncedLoadHistory = useCallback(() => {
-    // Clear any existing timeout
-    if (loadTimeoutRef.current) {
-      clearTimeout(loadTimeoutRef.current);
-    }
-    
-    // Set a new timeout to load after a short delay
-    loadTimeoutRef.current = setTimeout(() => {
-      loadChatHistory();
-      loadTimeoutRef.current = null;
-    }, 300); // 300ms debounce
-  }, [loadChatHistory]);
-
   // Load chat history when component mounts or refreshTrigger changes
   useEffect(() => {
     console.log('ChatHistory refreshTrigger changed:', refreshTrigger);
@@ -92,7 +78,7 @@ const ChatHistory = ({ refreshTrigger, onSelectChat, selectedChatId, activeChatI
     // This makes sure we see new/updated chats immediately
     console.log('Refreshing chat history from trigger');
     loadChatHistory();
-  }, [refreshTrigger, loadChatHistory]);
+  }, [refreshTrigger, loadChatHistory, activeChatId, selectedChatId]);
 
   // When selected chat ID changes (usually from clicking "New Chat" or selecting a chat)
   useEffect(() => {
