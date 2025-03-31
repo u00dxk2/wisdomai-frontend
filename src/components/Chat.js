@@ -193,17 +193,28 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
 
   const handleClearChat = async () => {
     try {
+      // Check if there's a selected chat
+      if (!selectedChatId) {
+        console.log('No chat selected to clear');
+        return;
+      }
+      
       // Clean up any existing streams
       if (cleanupRef.current) {
         cleanupRef.current();
         cleanupRef.current = null;
       }
       
-      await clearChat();
+      console.log('Clearing chat with ID:', selectedChatId);
+      await clearChat(selectedChatId);
+      
+      // Clear local messages
       setMessages([]);
       setStreamingText('');
       setIsTyping(false);
-      onChatUpdated(null);
+      
+      // Keep the same chat ID but ensure the UI is refreshed
+      onChatUpdated(selectedChatId);
     } catch (err) {
       console.error('Error clearing chat:', err);
     }

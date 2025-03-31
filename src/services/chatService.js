@@ -184,15 +184,25 @@ export const deleteChat = async (chatId) => {
 
 /**
  * Clear the current chat messages
+ * @param {string} chatId - ID of the chat to clear
  * @returns {Promise} Success response
  */
-export const clearChat = async () => {
+export const clearChat = async (chatId) => {
+  if (!chatId) {
+    console.error('Cannot clear chat: No chat ID provided');
+    throw new Error('Chat ID is required');
+  }
+  
   try {
-    const response = await axios.post(`${API_URL}${API_VERSION}/chat/clear`, {}, {
-      headers: {
-        Authorization: `Bearer ${getAuthToken()}`
+    const response = await axios.post(`${API_URL}${API_VERSION}/chat/clear`, 
+      { chatId }, 
+      {
+        headers: {
+          'Authorization': `Bearer ${getAuthToken()}`,
+          'Content-Type': 'application/json'
+        }
       }
-    });
+    );
     return response.data;
   } catch (error) {
     console.error('Error clearing chat:', error.response?.data || error.message);
