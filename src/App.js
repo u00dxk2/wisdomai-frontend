@@ -118,7 +118,7 @@ const App = () => {
               alignItems: 'center'
             }}>
               <Typography variant="h4" component="h1">
-                WisdomAI
+                Wisdom Triangle
               </Typography>
               <Button variant="outlined" color="primary" onClick={handleLogout}>
                 Logout

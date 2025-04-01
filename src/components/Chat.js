@@ -320,7 +320,7 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
           <TextField
             fullWidth
             size="small"
-            placeholder={isTyping ? "Waiting for response..." : "Type your message..."}
+            placeholder={isTyping ? "Waiting for response..." : "How can we help you..."}
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             disabled={isTyping}
