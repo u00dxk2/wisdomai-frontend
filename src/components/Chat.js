@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Box, TextField, Button, Typography, Paper, IconButton } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import WisdomSelector from './WisdomSelector';
+import UserMemoryDisplay from './UserMemoryDisplay';
 import { getChatMessages, sendMessage, clearChat } from '../services/chatService';
 
 const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
@@ -221,79 +222,93 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
   };
 
   return (
-    <Box sx={{ 
-      height: '100%', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      p: 2,
-      bgcolor: 'background.default' 
-    }}>
-      {/* Messages area */}
-      <Box sx={{ 
-        flex: 1, 
-        overflow: 'auto', 
-        mb: 2,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2 
-      }}>
-        {/* Regular messages */}
-        {messages.map((message, index) => (
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <UserMemoryDisplay />
+      
+      {/* Chat messages container */}
+      <Box
+        sx={{
+          flexGrow: 1,
+          overflowY: 'auto',
+          p: 2,
+          backgroundColor: '#f5f5f5',
+        }}
+      >
+        {/* Render existing messages */}
+        {messages.map((msg, index) => (
           <Box
             key={index}
             sx={{
               display: 'flex',
-              justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
-              px: 2
+              justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+              mb: 2,
             }}
           >
             <Paper
               sx={{
-                maxWidth: '70%',
                 p: 2,
-                borderRadius: 2,
-                bgcolor: message.role === 'user' ? 'primary.light' : 
-                        message.role === 'system' ? 'error.light' : 'grey.100',
-                color: message.role === 'user' ? 'text.primary' : 'text.secondary'
+                maxWidth: '75%',
+                backgroundColor: msg.role === 'user' ? '#e3f2fd' : '#ffffff',
+                borderRadius: msg.role === 'user' ? '15px 15px 0 15px' : '15px 15px 15px 0',
               }}
             >
-              {message.role === 'assistant' && (
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                  {message.figure || selectedFigure}
+              <Typography variant="body1">{msg.content}</Typography>
+              {msg.role === 'assistant' && msg.figure && (
+                <Typography variant="caption" sx={{ display: 'block', mt: 1, textAlign: 'right', fontStyle: 'italic' }}>
+                  - {msg.figure}
                 </Typography>
               )}
-              <Typography>{message.content}</Typography>
             </Paper>
           </Box>
         ))}
         
-        {/* Streaming message */}
-        {isTyping && streamingText && (
+        {/* Render streaming message if any */}
+        {streamingText && (
           <Box
             sx={{
               display: 'flex',
               justifyContent: 'flex-start',
-              px: 2
+              mb: 2,
             }}
           >
             <Paper
               sx={{
-                maxWidth: '70%',
                 p: 2,
-                borderRadius: 2,
-                bgcolor: 'grey.100',
-                color: 'text.secondary'
+                maxWidth: '75%',
+                backgroundColor: '#ffffff',
+                borderRadius: '15px 15px 15px 0',
               }}
             >
-              <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                {selectedFigure}
+              <Typography variant="body1">{streamingText}</Typography>
+              <Typography variant="caption" sx={{ display: 'block', mt: 1, textAlign: 'right', fontStyle: 'italic' }}>
+                - {selectedFigure}
               </Typography>
-              <Typography>{streamingText}</Typography>
             </Paper>
           </Box>
         )}
         
-        {/* Scroll anchor */}
+        {/* Indicate when the assistant is thinking */}
+        {isTyping && !streamingText && (
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'flex-start',
+              mb: 2,
+            }}
+          >
+            <Paper
+              sx={{
+                p: 2,
+                backgroundColor: '#ffffff',
+                borderRadius: '15px 15px 15px 0',
+              }}
+            >
+              <Typography variant="body2">Thinking...</Typography>
+            </Paper>
+          </Box>
+        )}
+        
+        {/* Scrolling anchor */}
         <div ref={messagesEndRef} />
       </Box>
 
