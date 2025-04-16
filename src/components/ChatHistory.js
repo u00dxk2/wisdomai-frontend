@@ -15,7 +15,7 @@ import { getChatHistory, deleteChat } from '../services/chatService';
 const ChatHistory = ({ refreshTrigger, onSelectChat, selectedChatId, activeChatId }) => {
   const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(false);
-  const prevActiveChatIdRef = useRef(null);
+  const prevRefreshTriggerRef = useRef(refreshTrigger);
   const loadTimeoutRef = useRef(null);
 
   const formatDate = (dateString) => {
@@ -41,65 +41,62 @@ const ChatHistory = ({ refreshTrigger, onSelectChat, selectedChatId, activeChatI
     }
   };
 
-  const loadChatHistory = useCallback(async () => {
+  const loadChatHistory = useCallback(async (immediate = false) => {
     // Clear any pending load timeout
     if (loadTimeoutRef.current) {
       clearTimeout(loadTimeoutRef.current);
       loadTimeoutRef.current = null;
     }
 
-    try {
-      setLoading(true);
-      const history = await getChatHistory();
-      
-      // Process each chat to include formatted dates
-      const processedHistory = history.map(chat => {
-        return {
-          ...chat,
-          formattedDate: formatDate(chat.updatedAt) || 'Date not available'
-        };
-      });
-      
-      setChats(processedHistory);
-    } catch (err) {
-      console.error('Error loading chat history:', err);
-      setChats([]);
-    } finally {
-      setLoading(false);
+    // Function to execute the actual loading
+    const executeLoad = async () => {
+      try {
+        setLoading(true);
+        const history = await getChatHistory();
+        
+        // Process each chat to include formatted dates
+        const processedHistory = history.map(chat => {
+          return {
+            ...chat,
+            formattedDate: formatDate(chat.updatedAt) || 'Date not available'
+          };
+        });
+        
+        setChats(processedHistory);
+      } catch (err) {
+        console.error('Error loading chat history:', err);
+        setChats([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Either load immediately or with a debounce timeout
+    if (immediate) {
+      executeLoad();
+    } else {
+      // 300ms debounce to prevent rapid consecutive reloads
+      loadTimeoutRef.current = setTimeout(executeLoad, 300);
     }
   }, []);
 
-  // Load chat history when component mounts or refreshTrigger changes
+  // Consolidate all refresh triggers into a single effect with debounce
   useEffect(() => {
-    console.log('ChatHistory refreshTrigger changed:', refreshTrigger);
+    console.log('ChatHistory refresh triggered:', 
+      refreshTrigger !== prevRefreshTriggerRef.current ? 'By refreshTrigger change' : 
+      'By other state change');
+    
     console.log('Current activeChatId:', activeChatId, 'selectedChatId:', selectedChatId);
     
-    // Always load history when refresh is triggered
-    // This makes sure we see new/updated chats immediately
-    console.log('Refreshing chat history from trigger');
-    loadChatHistory();
-  }, [refreshTrigger, loadChatHistory, activeChatId, selectedChatId]);
-
-  // When selected chat ID changes (usually from clicking "New Chat" or selecting a chat)
-  useEffect(() => {
-    console.log('selectedChatId changed to:', selectedChatId);
+    // Update the ref for the next render
+    prevRefreshTriggerRef.current = refreshTrigger;
     
-    // If we've deselected all chats (e.g., New Chat button), refresh the history
-    if (selectedChatId === null) {
-      console.log('selectedChatId cleared, refreshing history');
-      loadChatHistory();
-    }
-  }, [selectedChatId, loadChatHistory]);
-
-  // When activeChatId changes and isn't null, also refresh
-  useEffect(() => {
-    console.log('activeChatId changed to:', activeChatId);
-    if (activeChatId) {
-      prevActiveChatIdRef.current = activeChatId;
-      console.log('Loading chat history due to activeChatId change');
-      loadChatHistory();
-    }
-  }, [activeChatId, loadChatHistory]);
+    // Load chat history
+    // Use immediate loading for initial load (refreshTrigger === 0)
+    const immediate = refreshTrigger === 0;
+    loadChatHistory(immediate);
+    
+  }, [refreshTrigger, loadChatHistory, activeChatId, selectedChatId]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -114,7 +111,7 @@ const ChatHistory = ({ refreshTrigger, onSelectChat, selectedChatId, activeChatI
     event.stopPropagation();
     try {
       await deleteChat(chatId);
-      await loadChatHistory();
+      await loadChatHistory(true); // Immediate reload after delete
       if (selectedChatId === chatId) {
         onSelectChat(null);
       }
@@ -123,18 +120,10 @@ const ChatHistory = ({ refreshTrigger, onSelectChat, selectedChatId, activeChatI
     }
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ p: 2 }}>
-        <Typography>Loading chat history...</Typography>
-      </Box>
-    );
-  }
-
   return (
     <Box>
       <Typography variant="h6" sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-        Chat History
+        Chat History {loading && <span>(Refreshing...)</span>}
       </Typography>
       <List>
         {chats.map((chat) => (
@@ -177,7 +166,7 @@ const ChatHistory = ({ refreshTrigger, onSelectChat, selectedChatId, activeChatI
             />
           </ListItem>
         ))}
-        {chats.length === 0 && (
+        {chats.length === 0 && !loading && (
           <ListItem>
             <ListItemText
               primary="No chat history"
