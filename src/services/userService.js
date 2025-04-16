@@ -3,6 +3,8 @@
  */
 import { getAuthToken } from '../utils/auth';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
 /**
  * Fetch the current user's profile with memory information
  * @returns {Promise<Object>} User profile with memory data
@@ -14,7 +16,7 @@ export const getUserProfile = async () => {
       throw new Error('No authentication token found');
     }
     
-    const response = await fetch('/api/users/profile', {
+    const response = await fetch(`${API_URL}/api/users/profile`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }

@@ -17,12 +17,10 @@ import { setAuthToken, setUser } from '../utils/auth';
 
 /**
  * Base URL for API requests.
- * Changes based on environment (development/production).
+ * Uses environment variable for production URL.
  * @constant {string}
  */
-const API_BASE_URL = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:5001'
-  : 'https://wisdomai-backend.onrender.com';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
 /**
  * Register component that handles new user account creation.
