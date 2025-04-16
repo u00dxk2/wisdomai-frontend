@@ -41,21 +41,12 @@ export const sendMessage = async (chatId, message, wisdomFigure) => {
             onChunk(data.content, fullResponse);
           }
           
-          // If we're done, close the connection and save the message
+          // If we're done, close the connection and notify the component
           if (data.done) {
             eventSource.close();
             
-            // Save the complete message
-            saveMessage(chatResponse._id, {
-              role: 'assistant',
-              content: fullResponse,
-              figure: wisdomFigure
-            }, wisdomFigure)
-            .then(() => onDone(fullResponse))
-            .catch(error => {
-              console.error('Error saving assistant message:', error);
-              onDone(fullResponse);
-            });
+            // Call the component's done handler
+            onDone(fullResponse);
           }
         } catch (error) {
           console.error('Error parsing SSE message:', error);

@@ -3,7 +3,7 @@ import { Box, TextField, Button, Typography, Paper, IconButton } from '@mui/mate
 import SendIcon from '@mui/icons-material/Send';
 import WisdomSelector from './WisdomSelector';
 import UserMemoryDisplay from './UserMemoryDisplay';
-import { getChatMessages, sendMessage, clearChat } from '../services/chatService';
+import { getChatMessages, sendMessage, clearChat, saveMessage } from '../services/chatService';
 
 const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
   const [messages, setMessages] = useState([]);
@@ -73,104 +73,88 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
       content: newMessage.trim()
     };
 
-    // Add user message to state
+    // Add user message to state immediately for responsiveness
     setMessages(prevMessages => [...prevMessages, userMessage]);
     setNewMessage('');
     setIsTyping(true);
     setStreamingText('');
-    
+
+    let currentChatId = selectedChatId; // Use existing chatId or null for new chat
+
     try {
-      console.log('Sending message with selectedChatId:', selectedChatId);
+      console.log('Attempting to stream chat with chatId:', currentChatId, 'and figure:', selectedFigure);
+
+      // --- Refactored stream handling ---
+      // 1. Call sendMessage to save user message and get setup function
+      const { chatId: updatedChatId, setupStream } = await sendMessage(currentChatId, userMessage, selectedFigure);
       
-      // If selectedChatId is null, this means we're creating a new chat
-      if (!selectedChatId) {
-        console.log('This will create a new chat');
-      } else {
-        console.log('This will add to existing chat:', selectedChatId);
+      // Update currentChatId if it was newly created
+      if (!currentChatId && updatedChatId) {
+        currentChatId = updatedChatId;
+        // Optionally notify parent immediately if needed, though onChatUpdated is called later too
+        // onChatUpdated(currentChatId); 
       }
-      
-      // Send the message and get streaming setup
-      const { setupStream, chatId } = await sendMessage(selectedChatId, userMessage, selectedFigure);
-      
-      console.log('Message sent, received chatId:', chatId);
-      
-      // Track our current chat ID and update parent component
-      let currentChatId = chatId;
-      
-      // For new chats or if the chat ID changed, update our internal tracking
-      if (!selectedChatId || selectedChatId !== chatId) {
-        console.log('Updating selectedChatId after message sent:', chatId);
-        currentChatId = chatId;
-      }
-      
-      // Notify parent that a chat has been created or updated with user message
-      // This ensures the chat appears in history immediately after user sends a message
-      onChatUpdated(currentChatId);
-      
-      // Set up the stream handlers
-      const cleanup = setupStream(
-        // onChunk - called for each chunk of the response
-        (chunk, fullText) => {
-          setStreamingText(fullText);
-        },
-        // onDone - called when streaming is complete
-        (finalText) => {
-          // Add the complete message to the messages array
-          setMessages(prevMessages => [
-            ...prevMessages,
-            {
-              role: 'assistant',
-              content: finalText,
-              figure: selectedFigure
-            }
-          ]);
+
+      // 2. Define handlers for stream events
+      const handleStreamChunk = (chunk, fullReply) => {
+        setStreamingText(fullReply); // Update streaming text display
+      };
+
+      const handleStreamDone = async (fullReply) => {
+        console.log('Stream finished.');
+        cleanupRef.current = null; // Clear cleanup ref
+
+        setIsTyping(false);
+        setStreamingText(''); // Clear intermediate streaming text
+
+        const assistantMessage = {
+          role: 'assistant',
+          content: fullReply,
+          figure: selectedFigure
+        };
+
+        try {
+          // Save the assistant message to the same chat
+          const savedChatWithAssistantMsg = await saveMessage(currentChatId, assistantMessage);
           
-          // Clear the streaming state
-          setStreamingText('');
-          setIsTyping(false);
+          // Update the full message list in the UI state *after* saving
+          setMessages(savedChatWithAssistantMsg.messages || []); 
           
-          // Clear the cleanup function
-          cleanupRef.current = null;
-          
-          // Notify parent that the chat has been updated with the complete response
-          // This ensures the chat history is updated after the complete response
-          onChatUpdated(currentChatId);
-        },
-        // onError - called if there's an error with the stream
-        (error) => {
-          console.error('Stream error:', error);
-          setIsTyping(false);
-          setStreamingText('');
-          
-          // Add an error message
-          setMessages(prevMessages => [
-            ...prevMessages,
-            {
-              role: 'system',
-              content: 'Error: Failed to get response. Please try again.'
-            }
-          ]);
-          
-          // Clear the cleanup function
-          cleanupRef.current = null;
+          // Notify parent of the final chat ID and that update is complete
+          onChatUpdated(currentChatId); 
+
+        } catch (saveError) {
+          console.error("Error saving assistant message:", saveError);
+          setMessages(prevMessages => [...prevMessages, { role: 'system', content: 'Error: Failed to save assistant response.' }]);
         }
-      );
+      };
+
+      const handleStreamError = (error) => {
+        console.error('EventSource failed:', error);
+        setIsTyping(false);
+        setStreamingText('');
+        setMessages(prevMessages => [...prevMessages, { role: 'system', content: 'Error: Connection to server lost.' }]);
+        if (cleanupRef.current) {
+           cleanupRef.current();
+           cleanupRef.current = null;
+        }
+      };
+
+      // 3. Call setupStream to start the connection and get the cleanup function
+      const cleanup = setupStream(handleStreamChunk, handleStreamDone, handleStreamError);
       
-      // Store the cleanup function for later
+      // Store the cleanup function
       cleanupRef.current = cleanup;
 
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error initiating chat stream:', error);
       setIsTyping(false);
-      
-      // Add an error message
-      setMessages(prevMessages => [
-        ...prevMessages,
-        {
-          role: 'system',
-          content: 'Error: Failed to get response. Please try again.'
-        }
-      ]);
+      setMessages(prevMessages => [...prevMessages, { role: 'system', content: 'Error: Could not start chat. Please try again.' }]);
+      // Ensure cleanup is called if error happens during setup
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        cleanupRef.current = null;
+      }
     }
   };
 

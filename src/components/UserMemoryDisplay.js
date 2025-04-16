@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, List, ListItem, ListItemText, Chip, Divider } from '@mui/material';
+import { Box, Typography, Paper, List, ListItem, ListItemText, Chip } from '@mui/material';
 import { getUserProfile } from '../services/userService';
 
 /**
