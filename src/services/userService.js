@@ -1,6 +1,7 @@
 /**
  * Service for user-related API calls
  */
+import { getAuthToken } from '../utils/auth';
 
 /**
  * Fetch the current user's profile with memory information
@@ -8,7 +9,7 @@
  */
 export const getUserProfile = async () => {
   try {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     if (!token) {
       throw new Error('No authentication token found');
     }
