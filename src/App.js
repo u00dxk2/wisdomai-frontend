@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material';
 import { Box, CssBaseline, Typography, Button, Container } from "@mui/material";
 import "./index.css";
@@ -35,12 +35,11 @@ const theme = createTheme({
 const App = () => {
   // State
   const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated());
-  // eslint-disable-next-line no-unused-vars
-  const [authMode, setAuthMode] = useState('login');
   const [selectedFigure, setFigure] = useState('Buddha');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [selectedChatId, setSelectedChatId] = useState(null);
   const [activeChatId, setActiveChatId] = useState(null);
+  const navigate = useNavigate();
 
   // When a chat is updated (new message added)
   const handleChatUpdated = (chatId) => {
@@ -100,77 +99,75 @@ const App = () => {
     setIsLoggedIn(true);
   };
 
-  // Wrap the entire app in ThemeProvider and Router
+  // Wrap the entire app in ThemeProvider
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Router>
-        {isLoggedIn ? (
-          <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-            {/* Header */}
-            <Box sx={{ 
-              p: 2, 
-              borderBottom: 1, 
-              borderColor: 'divider',
-              bgcolor: 'background.paper',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <Typography variant="h4" component="h1">
-                Wisdom Triangle
-              </Typography>
-              <Button variant="outlined" color="primary" onClick={handleLogout}>
-                Logout
-              </Button>
-            </Box>
+      {isLoggedIn ? (
+        <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+          {/* Header */}
+          <Box sx={{ 
+            p: 2, 
+            borderBottom: 1, 
+            borderColor: 'divider',
+            bgcolor: 'background.paper',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <Typography variant="h4" component="h1">
+              Wisdom Triangle
+            </Typography>
+            <Button variant="outlined" color="primary" onClick={handleLogout}>
+              Logout
+            </Button>
+          </Box>
 
-            {/* Main content */}
-            <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-              <Box sx={{ width: 300, borderRight: 1, borderColor: 'divider', overflow: 'auto' }}>
-                <ChatHistory 
-                  refreshTrigger={refreshTrigger} 
-                  onSelectChat={handleChatSelected}
-                  selectedChatId={selectedChatId}
-                  activeChatId={activeChatId}
-                />
-              </Box>
-              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <Chat 
-                  selectedFigure={selectedFigure} 
-                  setFigure={setFigure}
-                  onChatUpdated={handleChatUpdated}
-                  selectedChatId={selectedChatId}
-                />
-              </Box>
+          {/* Main content */}
+          <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+            <Box sx={{ width: 300, borderRight: 1, borderColor: 'divider', overflow: 'auto' }}>
+              <ChatHistory 
+                refreshTrigger={refreshTrigger} 
+                onSelectChat={handleChatSelected}
+                selectedChatId={selectedChatId}
+                activeChatId={activeChatId}
+              />
+            </Box>
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <Chat 
+                selectedFigure={selectedFigure} 
+                setFigure={setFigure}
+                onChatUpdated={handleChatUpdated}
+                selectedChatId={selectedChatId}
+              />
             </Box>
           </Box>
-        ) : (
-          <Container maxWidth="sm" sx={{ mt: 8 }}>
-            <Routes>
-              <Route 
-                path="/login" 
-                element={
-                  <Login 
-                    onLoginSuccess={handleLoginSuccess}
-                    onSwitchToRegister={() => setAuthMode('register')}
-                  />
-                } 
-              />
-              <Route 
-                path="/register" 
-                element={
-                  <Register
-                    onRegisterSuccess={handleRegisterSuccess}
-                    onSwitchToLogin={() => setAuthMode('login')}
-                  />
-                } 
-              />
-              <Route path="*" element={<Navigate to="/login" replace />} />
-            </Routes>
-          </Container>
-        )}
-      </Router>
+        </Box>
+      ) : (
+        <Container maxWidth="sm" sx={{ mt: 8 }}>
+          <Routes>
+            <Route 
+              path="/login" 
+              element={
+                <Login 
+                  onLoginSuccess={handleLoginSuccess}
+                  onSwitchToRegister={() => navigate('/register')}
+                />
+              } 
+            />
+            <Route 
+              path="/register" 
+              element={
+                <Register
+                  onRegisterSuccess={handleRegisterSuccess}
+                  onSwitchToLogin={() => navigate('/login')}
+                />
+              } 
+            />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </Container>
+      )}
     </ThemeProvider>
   );
 };
