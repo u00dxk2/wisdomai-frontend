@@ -8,7 +8,6 @@ import {
   Typography,
   IconButton,
   Tooltip,
-  Fade,
   CircularProgress
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -22,7 +21,6 @@ const ChatHistory = ({ refreshTrigger, onSelectChat, selectedChatId, activeChatI
   const [isPending, startTransition] = useTransition();
   const prevRefreshTriggerRef = useRef(refreshTrigger);
   const loadTimeoutRef = useRef(null);
-  const prevChatsRef = useRef([]);
   const isMountedRef = useRef(true);
 
   const formatDate = (dateString) => {
@@ -99,13 +97,13 @@ const ChatHistory = ({ refreshTrigger, onSelectChat, selectedChatId, activeChatI
       // 300ms debounce to prevent rapid consecutive reloads
       loadTimeoutRef.current = setTimeout(executeLoad, 300);
     }
-  }, []);
+  }, [chats.length]);
 
   // Create a stable, memoized debounced version of the loadChatHistory function
   const debouncedLoadChatHistory = useCallback(
-    debounce((shouldRefresh = false) => {
+    (shouldRefresh = false) => {
       loadChatHistory(shouldRefresh);
-    }, 300),
+    },
     [loadChatHistory]
   );
 

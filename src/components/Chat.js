@@ -17,7 +17,7 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [streamingText, setStreamingText] = useState('');
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const messagesEndRef = useRef(null);
   const cleanupRef = useRef(null);
   const streamingMessageRef = useRef('');
@@ -104,15 +104,18 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
     
     return () => {
       // Cleanup streaming when component unmounts or chatId changes
-      if (streamingSourceRef.current) {
-        streamingSourceRef.current.close();
+      const sourceRef = streamingSourceRef.current;
+      const abortRef = abortControllerRef.current;
+      const timeoutRef = streamingUpdateTimeoutRef.current;
+      
+      if (sourceRef) {
+        sourceRef.close();
       }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+      if (abortRef) {
+        abortRef.abort();
       }
-      if (streamingUpdateTimeoutRef.current) {
-        clearTimeout(streamingUpdateTimeoutRef.current);
-        streamingUpdateTimeoutRef.current = null;
+      if (timeoutRef) {
+        clearTimeout(timeoutRef);
       }
     };
   }, [selectedChatId, loadChatMessages]);
