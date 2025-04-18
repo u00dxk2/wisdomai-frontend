@@ -12,7 +12,6 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { getChatHistory, deleteChat } from '../services/chatService';
-import debounce from 'lodash/debounce';
 
 const ChatHistory = ({ refreshTrigger, onSelectChat, selectedChatId, activeChatId }) => {
   const [chats, setChats] = useState([]);

@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback, useTransition, useMemo } from 'react';
-import { Box, TextField, Button, Typography, Paper, IconButton, Fade, CircularProgress } from '@mui/material';
+import React, { useState, useEffect, useRef, useCallback, useTransition } from 'react';
+import { Box, TextField, Button, Typography, Paper, IconButton, CircularProgress } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
-import ClearIcon from '@mui/icons-material/Clear';
 import WisdomSelector from './WisdomSelector';
 import UserMemoryDisplay from './UserMemoryDisplay';
 import ConversationStarters from './ConversationStarters';
@@ -102,12 +101,13 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
       loadChatMessages();
     }
     
+    // Store refs in local variables to avoid closure issues
+    const sourceRef = streamingSourceRef.current;
+    const abortRef = abortControllerRef.current;
+    const timeoutRef = streamingUpdateTimeoutRef.current;
+    
     return () => {
       // Cleanup streaming when component unmounts or chatId changes
-      const sourceRef = streamingSourceRef.current;
-      const abortRef = abortControllerRef.current;
-      const timeoutRef = streamingUpdateTimeoutRef.current;
-      
       if (sourceRef) {
         sourceRef.close();
       }
