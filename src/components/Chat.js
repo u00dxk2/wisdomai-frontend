@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback, useTransition } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useTransition, useMemo } from 'react';
 import { Box, TextField, Button, Typography, Paper, IconButton, Fade, CircularProgress } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import ClearIcon from '@mui/icons-material/Clear';
 import WisdomSelector from './WisdomSelector';
 import UserMemoryDisplay from './UserMemoryDisplay';
-import { getChatMessages, sendMessage, clearChat, saveMessage } from '../services/chatService';
+import ConversationStarters from './ConversationStarters';
+import { getChatMessages, sendMessage, clearChat, saveMessage, updateMemory } from '../services/chatService';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -24,12 +25,15 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
   const currentChatIdRef = useRef(null);
   const abortControllerRef = useRef(null);
   const textFieldRef = useRef(null);
+  const streamingUpdateTimeoutRef = useRef(null);
   
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
 
-  const loadChatMessages = async () => {
+  const loadChatMessages = useCallback(async () => {
     try {
       if (selectedChatId) {
         const chatMessages = await getChatMessages(selectedChatId);
@@ -40,13 +44,11 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
     } catch (err) {
       console.error('Error loading chat messages:', err);
     }
-  };
+  }, [selectedChatId]);
 
   useEffect(() => {
     loadChatMessages();
-    // When selectedChatId changes, log information about the change
-    console.log('Selected chat changed to:', selectedChatId);
-  }, [selectedChatId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedChatId, loadChatMessages]); 
 
   // This is an important fix: when chat ID appears in the response,
   // update our local selectedChatId to match it
@@ -56,9 +58,10 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
     }
   }, [selectedChatId, messages]);
 
+  // Scroll to bottom when messages or streaming text change
   useEffect(() => {
     scrollToBottom();
-  }, [messages, streamingText]);
+  }, [messages, streamingText, scrollToBottom]);
 
   // Cleanup function for when component unmounts or when starting a new chat
   useEffect(() => {
@@ -66,6 +69,10 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
       if (cleanupRef.current) {
         cleanupRef.current();
         cleanupRef.current = null;
+      }
+      if (streamingUpdateTimeoutRef.current) {
+        clearTimeout(streamingUpdateTimeoutRef.current);
+        streamingUpdateTimeoutRef.current = null;
       }
     };
   }, []);
@@ -103,11 +110,30 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
+      if (streamingUpdateTimeoutRef.current) {
+        clearTimeout(streamingUpdateTimeoutRef.current);
+        streamingUpdateTimeoutRef.current = null;
+      }
     };
-  }, [selectedChatId]);
+  }, [selectedChatId, loadChatMessages]);
+
+  // Only update streaming text if the length has changed significantly to reduce renders
+  const updateStreamingText = useCallback((text) => {
+    if (streamingUpdateTimeoutRef.current) {
+      clearTimeout(streamingUpdateTimeoutRef.current);
+    }
+    
+    streamingUpdateTimeoutRef.current = setTimeout(() => {
+      setStreamingText(text);
+      streamingUpdateTimeoutRef.current = null;
+    }, 50);
+  }, []);
 
   const handleSendMessage = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
+    
     if (!newMessage.trim() || isTyping) return;
 
     // Clean up any existing streams
@@ -126,6 +152,7 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
     setNewMessage('');
     setIsTyping(true);
     setStreamingText('');
+    streamingMessageRef.current = '';
 
     let currentChatId = selectedChatId; // Use existing chatId or null for new chat
 
@@ -139,14 +166,12 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
       // Update currentChatId if it was newly created
       if (!currentChatId && updatedChatId) {
         currentChatId = updatedChatId;
-        // Optionally notify parent immediately if needed, though onChatUpdated is called later too
-        // onChatUpdated(currentChatId); 
       }
 
       // 2. Define handlers for stream events
       const handleStreamChunk = (chunk, fullReply) => {
-        streamingMessageRef.current += chunk;
-        setStreamingText(fullReply); // Update streaming text display
+        streamingMessageRef.current = fullReply;
+        updateStreamingText(fullReply);
       };
 
       const handleStreamDone = async (fullReply) => {
@@ -163,20 +188,21 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
           // Save the assistant message to the same chat
           const savedChatWithAssistantMsg = await saveMessage(currentChatId, assistantMessage);
           
-          // Use React transitions for smoother UI update
+          // Update user memory with the conversation - this ensures facts and preferences are extracted
+          updateMemory(userMessage.content, fullReply, selectedFigure)
+            .then(() => console.log('Memory updated successfully'))
+            .catch(err => console.error('Error updating memory:', err));
+          
+          // Create a combined state update to minimize flashing
+          // We'll directly transition to the final state without intermediary renders
           startTransition(() => {
-            // First update the messages array without clearing the streaming text
-            setMessages(savedChatWithAssistantMsg.messages || []); 
+            // Update both states in the same render cycle
+            setMessages(savedChatWithAssistantMsg.messages || []);
             
-            // Only after the DOM has updated, clear the typing state with a delay
-            // This prevents the jarring transition between streaming and final message
-            setTimeout(() => {
-              setIsTyping(false);
-              // Keep streaming text visible momentarily to prevent flashing
-              setTimeout(() => {
-                setStreamingText('');
-              }, 50);
-            }, 150);
+            // Clear streaming text immediately to avoid duplicate content
+            streamingMessageRef.current = '';
+            setStreamingText('');
+            setIsTyping(false);
             
             // Notify parent of the final chat ID and that update is complete
             onChatUpdated(currentChatId);
@@ -269,70 +295,86 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
   // Component for rendering a message
   const MessageComponent = React.memo(({ message }) => {
     return (
-      <Fade 
-        in={true} 
-        key={`${message._id || message._tempId || message.role}-${message.content.substring(0, 10)}`}
-        timeout={300}
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
+          mb: 2,
+        }}
       >
-        <Box
+        <Paper
           sx={{
-            display: 'flex',
-            justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
-            mb: 2,
-            transition: 'opacity 0.3s ease, transform 0.2s ease',
+            p: 2,
+            maxWidth: '75%',
+            backgroundColor: message.role === 'user' ? '#e3f2fd' : '#ffffff',
+            borderRadius: message.role === 'user' ? '15px 15px 0 15px' : '15px 15px 15px 0',
           }}
+          elevation={1}
         >
-          <Paper
-            sx={{
-              p: 2,
-              maxWidth: '75%',
-              backgroundColor: message.role === 'user' ? '#e3f2fd' : '#ffffff',
-              borderRadius: message.role === 'user' ? '15px 15px 0 15px' : '15px 15px 15px 0',
-            }}
-          >
-            <Typography variant="body1">{message.content}</Typography>
-            {message.role === 'assistant' && message.figure && (
-              <Typography variant="caption" sx={{ display: 'block', mt: 1, textAlign: 'right', fontStyle: 'italic' }}>
-                - {message.figure}
-              </Typography>
-            )}
-          </Paper>
-        </Box>
-      </Fade>
+          <Typography variant="body1">{message.content}</Typography>
+          {message.role === 'assistant' && message.figure && (
+            <Typography variant="caption" sx={{ display: 'block', mt: 1, textAlign: 'right', fontStyle: 'italic' }}>
+              - {message.figure}
+            </Typography>
+          )}
+        </Paper>
+      </Box>
     );
+  }, (prevProps, nextProps) => {
+    // Custom comparison to prevent unnecessary re-renders
+    if (prevProps.message._id !== nextProps.message._id) return false;
+    if (prevProps.message.content !== nextProps.message.content) return false;
+    return true;
   });
 
   // Streaming message component (only renders when streaming)
-  const StreamingMessage = React.memo(({ text }) => {
+  const StreamingMessage = React.memo(({ text, figure }) => {
     if (!text) return null;
     
     return (
-      <Fade in={true} timeout={200}>
-        <Box
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'flex-start',
+          mb: 2,
+        }}
+      >
+        <Paper
           sx={{
-            display: 'flex',
-            justifyContent: 'flex-start',
-            mb: 2,
-            transition: 'opacity 0.3s ease',
+            p: 2,
+            maxWidth: '75%',
+            backgroundColor: '#ffffff',
+            borderRadius: '15px 15px 15px 0',
           }}
+          elevation={1}
         >
-          <Paper
-            sx={{
-              p: 2,
-              maxWidth: '75%',
-              backgroundColor: '#ffffff',
-              borderRadius: '15px 15px 15px 0',
-            }}
-          >
-            <Typography variant="body1">{text}</Typography>
-            <Typography variant="caption" sx={{ display: 'block', mt: 1, textAlign: 'right', fontStyle: 'italic' }}>
-              - {selectedFigure}
-            </Typography>
-          </Paper>
-        </Box>
-      </Fade>
+          <Typography variant="body1">{text}</Typography>
+          <Typography variant="caption" sx={{ display: 'block', mt: 1, textAlign: 'right', fontStyle: 'italic' }}>
+            - {figure}
+          </Typography>
+        </Paper>
+      </Box>
     );
+  }, (prevProps, nextProps) => {
+    // Only re-render if the text changes by more than 10 characters
+    // This prevents rapid re-renders during streaming
+    if (Math.abs(prevProps.text.length - nextProps.text.length) > 10) return false;
+    return true;
   });
+
+  // Handle when a conversation starter is selected
+  const handleStarterSelect = (starter) => {
+    if (isTyping) return;
+    
+    // Set the message text
+    setNewMessage(starter);
+    
+    // Auto-submit after a short delay to allow the UI to update
+    setTimeout(() => {
+      const syntheticEvent = { preventDefault: () => {} };
+      handleSendMessage(syntheticEvent);
+    }, 100);
+  };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -345,16 +387,48 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
           overflowY: 'auto',
           p: 2,
           backgroundColor: '#f5f5f5',
+          position: 'relative',
+          scrollBehavior: 'smooth'
         }}
       >
+        {/* If no messages and not typing, show conversation starters more prominently */}
+        {messages.length === 0 && !isTyping && selectedFigure && (
+          <Box 
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: '200px',
+              mb: 2,
+              mt: 4
+            }}
+          >
+            <Typography variant="h6" sx={{ mb: 3, textAlign: 'center' }}>
+              Start a conversation with {selectedFigure}
+            </Typography>
+            <ConversationStarters
+              selectedFigure={selectedFigure}
+              onSelectStarter={handleStarterSelect}
+              disabled={isTyping}
+            />
+          </Box>
+        )}
+      
         {/* Render existing messages with key that includes content to reduce re-renders */}
         {messages.map((msg, index) => (
-          <MessageComponent key={msg._id || msg._tempId || index} message={msg} />
+          <MessageComponent 
+            key={msg._id || msg._tempId || `message-${index}`} 
+            message={msg} 
+          />
         ))}
         
         {/* Render streaming message if any */}
         {streamingText && (
-          <StreamingMessage text={streamingText} />
+          <StreamingMessage 
+            text={streamingText} 
+            figure={selectedFigure}
+          />
         )}
         
         {/* Indicate when the assistant is thinking */}
@@ -372,8 +446,12 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
                 backgroundColor: '#ffffff',
                 borderRadius: '15px 15px 15px 0',
               }}
+              elevation={1}
             >
-              <Typography variant="body2">Thinking...</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <CircularProgress size={14} sx={{ mr: 1.5 }} />
+                <Typography variant="body2">Thinking...</Typography>
+              </Box>
             </Paper>
           </Box>
         )}
@@ -381,6 +459,15 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
         {/* Scrolling anchor */}
         <div ref={messagesEndRef} />
       </Box>
+
+      {/* Show conversation starters below messages when there are already messages */}
+      {selectedFigure && !isTyping && messages.length > 0 && (
+        <ConversationStarters
+          selectedFigure={selectedFigure}
+          onSelectStarter={handleStarterSelect}
+          disabled={isTyping}
+        />
+      )}
 
       {/* Wisdom selector */}
       <Box sx={{ mb: 2 }}>
@@ -416,7 +503,7 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                handleSendMessage();
+                handleSendMessage(e);
               }
             }}
           />
@@ -452,4 +539,4 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
   );
 };
 
-export default Chat; 
+export default React.memo(Chat); 

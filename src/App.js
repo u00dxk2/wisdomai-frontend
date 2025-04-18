@@ -35,7 +35,7 @@ const theme = createTheme({
 const App = () => {
   // State
   const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated());
-  const [selectedFigure, setFigure] = useState('Buddha');
+  const [selectedFigure, setSelectedFigure] = useState('Buddha');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [selectedChatId, setSelectedChatId] = useState(null);
   const [activeChatId, setActiveChatId] = useState(null);
@@ -136,7 +136,7 @@ const App = () => {
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <Chat 
                 selectedFigure={selectedFigure} 
-                setFigure={setFigure}
+                setFigure={setSelectedFigure}
                 onChatUpdated={handleChatUpdated}
                 selectedChatId={selectedChatId}
               />

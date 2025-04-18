@@ -5,75 +5,127 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 const API_VERSION = '/api/v1';
 
 /**
- * Send a message to the wisdom figure and handle streaming response
- * @param {string} chatId - Optional chat ID for existing chat
- * @param {Object} message - Message object with role and content
- * @param {string} wisdomFigure - The selected wisdom figure
- * @returns {Promise} Object with streaming response handlers
+ * Updates user memory with conversation data
+ * This ensures the backend extracts facts and preferences from the conversation
+ * @param {string} userMessage - The user's message
+ * @param {string} aiResponse - The AI's response
+ * @param {string} wisdomFigure - The wisdom figure used
+ * @returns {Promise} Success response
+ */
+export const updateMemory = async (userMessage, aiResponse, wisdomFigure) => {
+  try {
+    console.log('Updating user memory with conversation');
+    const response = await axios.post(`${API_URL}${API_VERSION}/chat/update-memory`, {
+      userMessage,
+      aiResponse,
+      wisdomFigure
+    }, {
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating user memory:', error.response?.data || error.message);
+    // Don't throw the error - this is non-critical functionality
+    return { success: false };
+  }
+};
+
+/**
+ * Sets up an EventSource connection to stream chat responses.
+ * @param {string | null} chatId - Optional ID of the current chat thread.
+ * @param {object} message - The user message object.
+ * @param {string} wisdomFigure - Selected wisdom figure to respond.
+ * @returns {Promise<object>} - Object containing the chat ID and setup function.
  */
 export const sendMessage = async (chatId, message, wisdomFigure) => {
   try {
-    // First save the user message
-    const chatResponse = await saveMessage(chatId, message, wisdomFigure);
+    console.log('Attempting to stream chat with chatId:', chatId, 'and figure:', wisdomFigure);
     
-    // Create EventSource URL with parameters
-    const url = `${API_URL}${API_VERSION}/chat/stream`;
-    const params = new URLSearchParams({
-      message: message.content,
-      wisdomFigure: wisdomFigure,
-      token: getAuthToken()
-    });
+    // First save the user message to get a chatId if we don't have one
+    const userMessageObj = {
+      role: 'user',
+      content: message.content || message,
+    };
     
-    // This will set up the streaming connection
-    const setupStream = (onChunk, onDone, onError) => {
-      // Create the EventSource for streaming
-      const eventSource = new EventSource(`${url}?${params}`);
-      let fullResponse = '';
-      
-      // Handle incoming chunks
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          
-          // If we have content, add it to the response
-          if (data.content !== undefined) {
-            fullResponse += data.content;
-            onChunk(data.content, fullResponse);
-          }
-          
-          // If we're done, close the connection and notify the component
-          if (data.done) {
-            eventSource.close();
+    const savedChat = await saveMessage(chatId, userMessageObj, wisdomFigure);
+    const updatedChatId = savedChat._id;
+    
+    console.log('Created/Updated chat with ID:', updatedChatId);
+    
+    // Function to set up streaming, to be called by the component
+    const setupStream = (handleChunk, handleDone, handleError) => {
+      try {
+        const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+        const token = getAuthToken();
+        
+        // IMPORTANT: This is the correct streaming endpoint URL
+        const eventSourceUrl = new URL(`${baseUrl}/chat-stream`);
+        
+        // Add the required query parameters
+        eventSourceUrl.searchParams.append('message', userMessageObj.content);
+        eventSourceUrl.searchParams.append('wisdomFigure', wisdomFigure);
+        eventSourceUrl.searchParams.append('chatId', updatedChatId);
+        
+        // Add authentication token as query parameter since EventSource doesn't support custom headers
+        eventSourceUrl.searchParams.append('token', token);
+        
+        // Create the EventSource
+        console.log(`Creating EventSource with URL: ${eventSourceUrl.toString()}`);
+        const eventSource = new EventSource(eventSourceUrl.toString());
+        
+        let fullResponse = '';
+        
+        // Handle incoming message chunks
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
             
-            // Call the component's done handler
-            onDone(fullResponse);
+            // If we have content, update the UI
+            if (data.content) {
+              fullResponse += data.content;
+              handleChunk(data.content, fullResponse);
+            }
+            
+            // If we're done, clean up and notify the component
+            if (data.done) {
+              console.log('Stream complete');
+              eventSource.close();
+              handleDone(fullResponse);
+            }
+          } catch (err) {
+            console.error('Error handling stream message:', err);
+            eventSource.close();
+            handleError(err);
           }
-        } catch (error) {
-          console.error('Error parsing SSE message:', error);
-          onError(error);
+        };
+        
+        // Handle errors
+        eventSource.onerror = (err) => {
+          console.error('EventSource failed:', err);
           eventSource.close();
-        }
-      };
-      
-      // Handle errors
-      eventSource.onerror = (error) => {
-        console.error('EventSource error:', error);
-        onError(error);
-        eventSource.close();
-      };
-      
-      // Return cleanup function
-      return () => {
-        eventSource.close();
-      };
+          handleError(err);
+        };
+        
+        // Return a cleanup function
+        return () => {
+          if (eventSource && eventSource.readyState !== EventSource.CLOSED) {
+            console.log('Closing EventSource connection');
+            eventSource.close();
+          }
+        };
+      } catch (err) {
+        console.error('Error setting up streaming:', err);
+        handleError(err);
+        return () => {}; // Empty cleanup function if setup failed
+      }
     };
     
-    return {
-      chatId: chatResponse._id,
-      setupStream
-    };
+    return { chatId: updatedChatId, setupStream };
   } catch (error) {
-    console.error('Error setting up streaming:', error);
+    console.error('Error in sendMessage:', error);
     throw error;
   }
 };
