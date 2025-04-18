@@ -1,17 +1,29 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Box, TextField, Button, Typography, Paper, IconButton } from '@mui/material';
+import React, { useState, useEffect, useRef, useCallback, useTransition } from 'react';
+import { Box, TextField, Button, Typography, Paper, IconButton, Fade, CircularProgress } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
+import ClearIcon from '@mui/icons-material/Clear';
 import WisdomSelector from './WisdomSelector';
 import UserMemoryDisplay from './UserMemoryDisplay';
 import { getChatMessages, sendMessage, clearChat, saveMessage } from '../services/chatService';
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 
 const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [streamingText, setStreamingText] = useState('');
+  const [isPending, startTransition] = useTransition();
   const messagesEndRef = useRef(null);
   const cleanupRef = useRef(null);
+  const streamingMessageRef = useRef('');
+  const streamingSourceRef = useRef(null);
+  const currentChatIdRef = useRef(null);
+  const abortControllerRef = useRef(null);
+  const textFieldRef = useRef(null);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -58,6 +70,42 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
     };
   }, []);
 
+  // Focus the input field when the component loads
+  useEffect(() => {
+    if (textFieldRef.current) {
+      textFieldRef.current.focus();
+    }
+  }, []);
+  
+  // Update the ref when the chatId changes
+  useEffect(() => {
+    currentChatIdRef.current = selectedChatId;
+    
+    // Initialize or clear for a new chat
+    if (!selectedChatId) {
+      // Reset state for new chat
+      setMessages([]);
+      setStreamingText('');
+      streamingMessageRef.current = '';
+      if (textFieldRef.current) {
+        textFieldRef.current.focus();
+      }
+    } else {
+      // Load messages for existing chat
+      loadChatMessages();
+    }
+    
+    return () => {
+      // Cleanup streaming when component unmounts or chatId changes
+      if (streamingSourceRef.current) {
+        streamingSourceRef.current.close();
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [selectedChatId]);
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || isTyping) return;
@@ -97,15 +145,13 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
 
       // 2. Define handlers for stream events
       const handleStreamChunk = (chunk, fullReply) => {
+        streamingMessageRef.current += chunk;
         setStreamingText(fullReply); // Update streaming text display
       };
 
       const handleStreamDone = async (fullReply) => {
         console.log('Stream finished.');
         cleanupRef.current = null; // Clear cleanup ref
-
-        setIsTyping(false);
-        setStreamingText(''); // Clear intermediate streaming text
 
         const assistantMessage = {
           role: 'assistant',
@@ -117,15 +163,30 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
           // Save the assistant message to the same chat
           const savedChatWithAssistantMsg = await saveMessage(currentChatId, assistantMessage);
           
-          // Update the full message list in the UI state *after* saving
-          setMessages(savedChatWithAssistantMsg.messages || []); 
-          
-          // Notify parent of the final chat ID and that update is complete
-          onChatUpdated(currentChatId); 
+          // Use React transitions for smoother UI update
+          startTransition(() => {
+            // First update the messages array without clearing the streaming text
+            setMessages(savedChatWithAssistantMsg.messages || []); 
+            
+            // Only after the DOM has updated, clear the typing state with a delay
+            // This prevents the jarring transition between streaming and final message
+            setTimeout(() => {
+              setIsTyping(false);
+              // Keep streaming text visible momentarily to prevent flashing
+              setTimeout(() => {
+                setStreamingText('');
+              }, 50);
+            }, 150);
+            
+            // Notify parent of the final chat ID and that update is complete
+            onChatUpdated(currentChatId);
+          });
 
         } catch (saveError) {
           console.error("Error saving assistant message:", saveError);
           setMessages(prevMessages => [...prevMessages, { role: 'system', content: 'Error: Failed to save assistant response.' }]);
+          setIsTyping(false);
+          setStreamingText('');
         }
       };
 
@@ -205,6 +266,74 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
     }
   };
 
+  // Component for rendering a message
+  const MessageComponent = React.memo(({ message }) => {
+    return (
+      <Fade 
+        in={true} 
+        key={`${message._id || message._tempId || message.role}-${message.content.substring(0, 10)}`}
+        timeout={300}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
+            mb: 2,
+            transition: 'opacity 0.3s ease, transform 0.2s ease',
+          }}
+        >
+          <Paper
+            sx={{
+              p: 2,
+              maxWidth: '75%',
+              backgroundColor: message.role === 'user' ? '#e3f2fd' : '#ffffff',
+              borderRadius: message.role === 'user' ? '15px 15px 0 15px' : '15px 15px 15px 0',
+            }}
+          >
+            <Typography variant="body1">{message.content}</Typography>
+            {message.role === 'assistant' && message.figure && (
+              <Typography variant="caption" sx={{ display: 'block', mt: 1, textAlign: 'right', fontStyle: 'italic' }}>
+                - {message.figure}
+              </Typography>
+            )}
+          </Paper>
+        </Box>
+      </Fade>
+    );
+  });
+
+  // Streaming message component (only renders when streaming)
+  const StreamingMessage = React.memo(({ text }) => {
+    if (!text) return null;
+    
+    return (
+      <Fade in={true} timeout={200}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'flex-start',
+            mb: 2,
+            transition: 'opacity 0.3s ease',
+          }}
+        >
+          <Paper
+            sx={{
+              p: 2,
+              maxWidth: '75%',
+              backgroundColor: '#ffffff',
+              borderRadius: '15px 15px 15px 0',
+            }}
+          >
+            <Typography variant="body1">{text}</Typography>
+            <Typography variant="caption" sx={{ display: 'block', mt: 1, textAlign: 'right', fontStyle: 'italic' }}>
+              - {selectedFigure}
+            </Typography>
+          </Paper>
+        </Box>
+      </Fade>
+    );
+  });
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <UserMemoryDisplay />
@@ -218,57 +347,14 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
           backgroundColor: '#f5f5f5',
         }}
       >
-        {/* Render existing messages */}
+        {/* Render existing messages with key that includes content to reduce re-renders */}
         {messages.map((msg, index) => (
-          <Box
-            key={index}
-            sx={{
-              display: 'flex',
-              justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-              mb: 2,
-            }}
-          >
-            <Paper
-              sx={{
-                p: 2,
-                maxWidth: '75%',
-                backgroundColor: msg.role === 'user' ? '#e3f2fd' : '#ffffff',
-                borderRadius: msg.role === 'user' ? '15px 15px 0 15px' : '15px 15px 15px 0',
-              }}
-            >
-              <Typography variant="body1">{msg.content}</Typography>
-              {msg.role === 'assistant' && msg.figure && (
-                <Typography variant="caption" sx={{ display: 'block', mt: 1, textAlign: 'right', fontStyle: 'italic' }}>
-                  - {msg.figure}
-                </Typography>
-              )}
-            </Paper>
-          </Box>
+          <MessageComponent key={msg._id || msg._tempId || index} message={msg} />
         ))}
         
         {/* Render streaming message if any */}
         {streamingText && (
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'flex-start',
-              mb: 2,
-            }}
-          >
-            <Paper
-              sx={{
-                p: 2,
-                maxWidth: '75%',
-                backgroundColor: '#ffffff',
-                borderRadius: '15px 15px 15px 0',
-              }}
-            >
-              <Typography variant="body1">{streamingText}</Typography>
-              <Typography variant="caption" sx={{ display: 'block', mt: 1, textAlign: 'right', fontStyle: 'italic' }}>
-                - {selectedFigure}
-              </Typography>
-            </Paper>
-          </Box>
+          <StreamingMessage text={streamingText} />
         )}
         
         {/* Indicate when the assistant is thinking */}
@@ -323,6 +409,16 @@ const Chat = ({ selectedFigure, setFigure, onChatUpdated, selectedChatId }) => {
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             disabled={isTyping}
+            inputRef={textFieldRef}
+            autoFocus
+            multiline
+            maxRows={3}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+              }
+            }}
           />
           <IconButton 
             type="submit" 

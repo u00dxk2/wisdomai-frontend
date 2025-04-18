@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useTransition } from 'react';
 import { format, parseISO } from 'date-fns';
 import {
   Box,
@@ -7,16 +7,23 @@ import {
   ListItemText,
   Typography,
   IconButton,
-  Tooltip
+  Tooltip,
+  Fade,
+  CircularProgress
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { getChatHistory, deleteChat } from '../services/chatService';
+import debounce from 'lodash/debounce';
 
 const ChatHistory = ({ refreshTrigger, onSelectChat, selectedChatId, activeChatId }) => {
   const [chats, setChats] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isPending, startTransition] = useTransition();
   const prevRefreshTriggerRef = useRef(refreshTrigger);
   const loadTimeoutRef = useRef(null);
+  const prevChatsRef = useRef([]);
+  const isMountedRef = useRef(true);
 
   const formatDate = (dateString) => {
     try {
@@ -51,8 +58,14 @@ const ChatHistory = ({ refreshTrigger, onSelectChat, selectedChatId, activeChatI
     // Function to execute the actual loading
     const executeLoad = async () => {
       try {
-        setLoading(true);
+        // Only set loading state on initial load, not refreshes
+        if (chats.length === 0) {
+          setLoading(true);
+        }
+        
         const history = await getChatHistory();
+        
+        if (!isMountedRef.current) return;
         
         // Process each chat to include formatted dates
         const processedHistory = history.map(chat => {
@@ -62,11 +75,19 @@ const ChatHistory = ({ refreshTrigger, onSelectChat, selectedChatId, activeChatI
           };
         });
         
-        setChats(processedHistory);
+        // Use transitions for smoother updates
+        startTransition(() => {
+          // Set the new chats
+          setChats(processedHistory);
+          setLoading(false);
+          setError(null);
+        });
       } catch (err) {
+        if (!isMountedRef.current) return;
+        
         console.error('Error loading chat history:', err);
         setChats([]);
-      } finally {
+        setError('Failed to load chat history');
         setLoading(false);
       }
     };
@@ -80,27 +101,34 @@ const ChatHistory = ({ refreshTrigger, onSelectChat, selectedChatId, activeChatI
     }
   }, []);
 
-  // Consolidate all refresh triggers into a single effect with debounce
+  // Create a stable, memoized debounced version of the loadChatHistory function
+  const debouncedLoadChatHistory = useCallback(
+    debounce((shouldRefresh = false) => {
+      loadChatHistory(shouldRefresh);
+    }, 300),
+    [loadChatHistory]
+  );
+
+  // Monitor refresh triggers and handle updates
   useEffect(() => {
-    console.log('ChatHistory refresh triggered:', 
-      refreshTrigger !== prevRefreshTriggerRef.current ? 'By refreshTrigger change' : 
-      'By other state change');
-    
-    console.log('Current activeChatId:', activeChatId, 'selectedChatId:', selectedChatId);
+    const triggerChanged = refreshTrigger !== prevRefreshTriggerRef.current;
     
     // Update the ref for the next render
     prevRefreshTriggerRef.current = refreshTrigger;
     
     // Load chat history
     // Use immediate loading for initial load (refreshTrigger === 0)
-    const immediate = refreshTrigger === 0;
-    loadChatHistory(immediate);
+    const immediate = refreshTrigger === 0 || triggerChanged;
+    debouncedLoadChatHistory(immediate);
     
-  }, [refreshTrigger, loadChatHistory, activeChatId, selectedChatId]);
+  }, [refreshTrigger, debouncedLoadChatHistory]);
 
   // Cleanup on unmount
   useEffect(() => {
+    isMountedRef.current = true;
+    
     return () => {
+      isMountedRef.current = false;
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
       }
@@ -111,63 +139,116 @@ const ChatHistory = ({ refreshTrigger, onSelectChat, selectedChatId, activeChatI
     event.stopPropagation();
     try {
       await deleteChat(chatId);
-      await loadChatHistory(true); // Immediate reload after delete
+      debouncedLoadChatHistory(true); // Immediate reload after delete
       if (selectedChatId === chatId) {
         onSelectChat(null);
       }
     } catch (err) {
       console.error('Error deleting chat:', err);
+      setError('Failed to delete chat');
     }
   };
 
-  return (
-    <Box>
-      <Typography variant="h6" sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-        Chat History {loading && <span>(Refreshing...)</span>}
-      </Typography>
-      <List>
-        {chats.map((chat) => (
-          <ListItem
-            key={chat._id}
-            onClick={() => onSelectChat(chat._id)}
-            selected={selectedChatId === chat._id || activeChatId === chat._id}
-            secondaryAction={
-              <IconButton 
-                edge="end" 
-                aria-label="delete"
-                onClick={(e) => handleDeleteChat(chat._id, e)}
-              >
-                <DeleteIcon />
-              </IconButton>
-            }
-            sx={{ 
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              py: 1,
-              cursor: 'pointer',
-              '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.04)'
-              }
-            }}
+  // Memoize individual chat item to prevent unnecessary re-renders
+  const ChatItem = React.memo(({ chat }) => {
+    const isSelected = selectedChatId === chat._id || activeChatId === chat._id;
+    
+    return (
+      <ListItem
+        onClick={() => onSelectChat(chat._id)}
+        selected={isSelected}
+        secondaryAction={
+          <IconButton 
+            edge="end" 
+            aria-label="delete"
+            onClick={(e) => handleDeleteChat(chat._id, e)}
+            sx={{ opacity: 0.7, '&:hover': { opacity: 1 } }}
           >
-            <ListItemText
-              primary={chat.title || 'Untitled Chat'}
-              secondary={
-                <Tooltip title={chat.updatedAt || 'No date available'}>
-                  <Typography 
-                    variant="caption" 
-                    component="span"
-                    sx={{ color: 'text.secondary' }}
-                  >
-                    {chat.formattedDate}
-                  </Typography>
-                </Tooltip>
-              }
-            />
-          </ListItem>
+            <DeleteIcon />
+          </IconButton>
+        }
+        sx={{ 
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          py: 1,
+          cursor: 'pointer',
+          '&:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.04)'
+          },
+          transition: 'background-color 0.2s ease',
+          borderRadius: '4px',
+          my: 0.5
+        }}
+      >
+        <ListItemText
+          primary={chat.title || 'Untitled Chat'}
+          secondary={
+            <Tooltip title={chat.updatedAt || 'No date available'}>
+              <Typography 
+                variant="caption" 
+                component="span"
+                sx={{ color: 'text.secondary' }}
+              >
+                {chat.formattedDate}
+              </Typography>
+            </Tooltip>
+          }
+        />
+      </ListItem>
+    );
+  });
+
+  // Render loading spinner when data is being fetched
+  if (loading && chats.length === 0) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Render error message if there's an error
+  if (error) {
+    return (
+      <Box sx={{ p: 2 }}>
+        <Typography color="error">{error}</Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      transition: 'opacity 0.3s ease',
+      opacity: isPending ? 0.9 : 1
+    }}>
+      <Typography variant="h6" sx={{ 
+        p: 2, 
+        borderBottom: 1, 
+        borderColor: 'divider',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
+        Chat History
+        {loading && chats.length > 0 && (
+          <CircularProgress size={16} sx={{ ml: 1 }} />
+        )}
+      </Typography>
+      
+      <List sx={{ 
+        overflowY: 'auto',
+        flexGrow: 1,
+        px: 1
+      }}>
+        {chats.map(chat => (
+          <ChatItem key={chat._id} chat={chat} />
         ))}
+        
         {chats.length === 0 && !loading && (
-          <ListItem>
+          <ListItem sx={{ justifyContent: 'center', opacity: 0.7 }}>
             <ListItemText
               primary="No chat history"
               secondary="Start a new chat to begin"
@@ -179,4 +260,4 @@ const ChatHistory = ({ refreshTrigger, onSelectChat, selectedChatId, activeChatI
   );
 };
 
-export default ChatHistory; 
+export default React.memo(ChatHistory); 
